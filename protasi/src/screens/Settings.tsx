@@ -58,7 +58,11 @@ export default function Settings() {
               <div key={v.id}>
                 <div className={styles.voiceRow}>
                   <div className={styles.voiceInfo}>
-                    <span className={styles.voiceName}>{v.name}</span>
+                    <div className={styles.voiceNameRow}>
+                      <span className={styles.voiceName}>{v.name}</span>
+                      {form.enVoiceId === v.id && <span className={styles.voiceTag}>EN</span>}
+                      {form.grVoiceId === v.id && <span className={`${styles.voiceTag} ${styles.voiceTagGr}`}>GR</span>}
+                    </div>
                     <span className={styles.voiceId}>{v.id}</span>
                   </div>
                   <button className={styles.removeBtn} onClick={() => removeVoice(v.id)}>

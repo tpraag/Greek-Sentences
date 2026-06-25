@@ -108,10 +108,29 @@
   min-width: 0;
 }
 
+.voiceNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .voiceName {
   font-size: 15px;
   font-weight: 500;
   color: var(--ink);
+}
+
+.voiceTag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #fff;
+  background: var(--ink-muted);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.voiceTagGr {
+  background: var(--accent);
 }
 
 .voiceId {
