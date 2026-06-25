@@ -1,0 +1,171 @@
+.header {
+  padding: 60px 24px 20px;
+}
+
+.title {
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.body {
+  padding: 0 24px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+}
+
+.card {
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  min-height: 52px;
+}
+
+.rowLabel {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+
+.select {
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  text-align: right;
+  max-width: 160px;
+}
+
+.input {
+  font-size: 14px;
+  color: var(--ink-soft);
+  text-align: right;
+  width: 160px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 2px;
+}
+.input::placeholder { color: var(--ink-placeholder); }
+
+.stepperSmall {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.stepperSmall button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.footnote {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-top: 8px;
+  padding: 0 4px;
+}
+
+/* Voice manager */
+.emptyVoices {
+  font-size: 13px;
+  color: var(--ink-muted);
+  padding: 14px 16px;
+  font-style: italic;
+}
+
+.voiceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  gap: 12px;
+}
+
+.voiceInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.voiceName {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.voiceId {
+  font-size: 11px;
+  color: var(--ink-muted);
+  font-family: ui-monospace, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.removeBtn {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--destructive);
+  flex-shrink: 0;
+}
+
+.addVoiceRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+.voiceInput {
+  width: 100%;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--ink);
+  transition: border-color .15s;
+}
+.voiceInput:focus { border-color: var(--accent); }
+.voiceInput::placeholder { color: var(--ink-placeholder); }
+
+.addVoiceBtn {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  align-self: flex-end;
+  transition: opacity .15s;
+}
+.addVoiceBtn:disabled { opacity: .4; }
+.addVoiceBtn:not(:disabled):active { opacity: .85; }
+
+.noVoices {
+  font-size: 13px;
+  color: var(--ink-placeholder);
+  font-style: italic;
+}

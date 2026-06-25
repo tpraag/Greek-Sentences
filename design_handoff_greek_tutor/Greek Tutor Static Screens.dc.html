@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+</style>
+</helmet>
+
+<div style="min-width:100%; min-height:100vh; width:max-content; box-sizing:border-box; padding:48px; background:#E7E5DF; font-family:'Figtree',-apple-system,sans-serif;">
+
+  <div style="font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:#9A9183; font-weight:600; margin-bottom:6px;">Greek Tutor &middot; concept</div>
+  <div style="font-size:30px; font-weight:700; color:#26241F; letter-spacing:-0.02em;">A calm notebook for learning Greek</div>
+  <div style="font-size:15px; color:#6F6A60; margin-top:6px; max-width:640px;">Write English sentences, auto-translate, generate narration, and play through a collection in any order. Higher-fidelity screens hinting at the real look.</div>
+
+  <!-- ROW LABEL -->
+  <div style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:#9A9183; font-weight:600; margin:40px 0 18px;">Core screens</div>
+
+  <div style="display:flex; gap:40px; align-items:flex-start;">
+
+    <!-- ============ 1. LIBRARY ============ -->
+    <div style="flex:none; width:412px;">
+      <div style="font-size:13px; font-weight:600; color:#57523F; margin-bottom:12px;">1 &middot; Library</div>
+      <div style="background:#111010; border-radius:48px; padding:11px; box-shadow:0 18px 50px rgba(0,0,0,0.16);">
+        <div data-screen-label="Library" style="position:relative; width:390px; height:812px; border-radius:38px; overflow:hidden; background:#F6F4EF; display:flex; flex-direction:column;">
+          <div style="position:absolute; top:11px; left:50%; transform:translateX(-50%); width:112px; height:32px; background:#111010; border-radius:18px; z-index:6;"></div>
+          <!-- status bar -->
+          <div style="height:52px; flex:none; display:flex; align-items:flex-end; justify-content:space-between; padding:0 28px 6px; font-size:14px; font-weight:600; color:#26241F;">
+            <span>9:41</span>
+            <span style="display:flex; gap:5px; align-items:center;"><span style="width:17px; height:11px; border:1.5px solid #26241F; border-radius:3px; display:inline-block;"></span></span>
+          </div>
+          <!-- scroll content -->
+          <div style="flex:1; overflow:hidden; padding:8px 24px 0;">
+            <div style="font-size:30px; font-weight:700; color:#26241F; letter-spacing:-0.02em;">Library</div>
+            <div style="font-size:14px; color:#9A9183; margin-top:2px;">60 sentences &middot; 4 collections</div>
+
+            <div style="margin-top:18px; display:flex; align-items:center; gap:9px; background:#FFFFFF; border:1px solid #ECE8DF; border-radius:13px; padding:11px 14px;">
+              <span style="width:14px; height:14px; border:2px solid #B7AF9F; border-radius:50%; display:inline-block;"></span>
+              <span style="font-size:15px; color:#B0A795;">Search sentences</span>
+            </div>
+
+            <div style="display:flex; align-items:baseline; justify-content:space-between; margin:22px 0 12px;">
+              <span style="font-size:13px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#9A9183;">Collections</span>
+              <span style="font-size:13px; color:#5B8A7D; font-weight:600;">Edit</span>
+            </div>
+
+            <!-- folder card -->
+            <div style="background:#FFFFFF; border:1px solid #ECE8DF; border-radius:16px; padding:16px; display:flex; gap:14px; align-items:center; margin-bottom:11px;">
+              <div style="width:46px; height:46px; border-radius:13px; background:#E6EFEC; flex:none; display:flex; align-items:center; justify-content:center;"><div style="width:18px; height:14px; border:2px solid #5B8A7D; border-radius:3px; border-top-width:5px;"></div></div>
+              <div style="flex:1;">
+                <div style="font-size:16px; font-weight:600; color:#26241F;">Everyday Phrases</div>
+                <div style="font-size:13px; color:#9A9183; margin-top:2px;">24 sentences &middot; 18 narrated</div>
+              </div>
+              <span style="color:#C9C2B2; font-size:20px;">&rsaquo;</span>
+            </div>
+
+            <div style="background:#FFFFFF; border:1px solid #ECE8DF; border-radius:16px; padding:16px; display:flex; gap:14px; align-items:center; margin-bottom:11px;">
+              <div style="width:46px; height:46px; border-radius:13px; background:#F0EAE0; flex:none; display:flex; align-items:center; justify-content:center;"><div style="width:18px; height:14px; border:2px solid #C9A24B; border-radius:3px; border-top-width:5px;"></div></div>
+              <div style="flex:1;">
+                <div style="font-size:16px; font-weight:600; color:#26241F;">Caf&eacute; &amp; Food</div>
+                <div style="font-size:13px; color:#9A9183; margin-top:2px;">12 sentences &middot; all narrated</div>
+              </div>
+              <span style="color:#C9C2B2; font-size:20px;">&rsaquo;</span>
+            </div>
+
+            <div style="background:#FFFFFF; border:1px solid #ECE8DF; border-radius:16px; padding:16px; display:flex; gap:14px; align-items:center; margin-bottom:11px;">
+              <div style="width:46px; height:46px; border-radius:13px; background:#E9E6F0; flex:none; display:flex; align-items:center; justify-content:center;"><div style="width:18px; height:14px; border:2px solid #8579A8; border-radius:3px; border-top-width:5px;"></div></div>
+              <div style="flex:1;">
+                <div style="font-size:16px; font-weight:600; color:#26241F;">Travel &amp; Directions</div>
+                <div style="font-size:13px; color:#9A9183; margin-top:2px;">18 sentences &middot; 9 narrated</div>
+              </div>
+              <span style="color:#C9C2B2; font-size:20px;">&rsaquo;</span>
+            </div>
+
+            <div style="background:#FFFFFF; border:1px solid #ECE8DF; border-radius:16px; padding:16px; display:flex; gap:14px; align-items:center;">
+              <div style="width:46px; height:46px; border-radius:13px; background:#EDE9E0; flex:none; display:flex; align-items:center; justify-content:center;"><div style="width:18px; height:14px; border:2px solid #A89D88; border-radius:3px; border-top-width:5px;"></div></div>
+              <div style="flex:1;">
+                <div style="font-size:16px; font-weight:600; color:#26241F;">Short Stories</div>
+                <div style="font-size:13px; color:#9A9183; margin-top:2px;">6 paragraphs</div>
+              </div>
+              <span style="color:#C9C2B2; font-size:20px;">&rsaquo;</span>
+            </div>
+          </div>
+
+          <!-- tab bar -->
+          <div style="position:relative; flex:none; height:86px; background:rgba(246,244,239,0.92); backdrop-filter:blur(12px); border-top:1px solid #ECE8DF; display:flex; align-items:flex-start; justify-content:space-around; padding-top:12px;">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:5px; width:80px;">
+              <div style="display:flex; flex-direction:column; gap:3px;"><div style="width:22px; height:6px; border-radius:2px; background:#5B8A7D;"></div><div style="width:22px; height:6px; border-radius:2px; background:#5B8A7D; opacity:0.45;"></div></div>
+              <span style="font-size:11px; font-weight:600; color:#5B8A7D;">Library</span>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:5px; width:80px;">
+              <div style="display:flex; flex-direction:column; gap:5px; width:22px; opacity:0.75;"><div style="position:relative; height:3px; background:#9A9183; border-radius:2px;"><div style="position:absolute; left:3px; top:-2px; width:7px; height:7px; border-radius:50%; background:#9A9183;"></div></div><div style="position:relative; height:3px; background:#9A9183; border-radius:2px;"><div style="position:absolute; right:3px; top:-2px; width:7px; height:7px; border-radius:50%; background:#9A9183;"></div></div></div>
+              <span style="font-size:11px; font-weight:500; color:#9A9183;">Settings</span>
+            </div>
+            <!-- floating add -->
+            <div style="position:absolute; top:-22px; left:50%; transform:translateX(-50%); width:62px; height:62px; border-radius:50%; background:#5B8A7D; box-shadow:0 8px 20px rgba(91,138,125,0.45); display:flex; align-items:center; justify-content:center;">
+              <div style="position:relative; width:24px; height:24px;"><div style="position:absolute; top:11px; left:0; width:24px; height:2.5px; background:#fff; border-radius:2px;"></div><div style="position:absolute; left:11px; top:0; width:2.5px; height:24px; background:#fff; border-radius:2px;"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 2. SENTENCE LIST ============ -->
+    <div style="flex:none; width:412px;">
+      <div style="font-size:13px; font-weight:600; color:#57523F; margin-bottom:12px;">2 &middot; Inside a collection</div>
+      <div style="background:#111010; border-radius:48px; padding:11px; box-shadow:0 18px 50px rgba(0,0,0,0.16);">
+        <div data-screen-label="Collection" style="position:relative; width:390px; height:812px; border-radius:38px; overflow:hidden; background:#F6F4EF; display:flex; flex-direction:column;">
+          <div style="position:absolute; top:11px; left:50%; transform:translateX(-50%); width:112px; height:32px; background:#111010; border-radius:18px; z-index:6;"></div>
+          <div style="height:52px; flex:none; display:flex; align-items:flex-end; justify-content:space-between; padding:0 28px 6px; font-size:14px; font-weight:600; color:#26241F;">
+            <span>9:41</span><span style="width:17px; height:11px; border:1.5px solid #26241F; border-radius:3px;"></span>
+          </div>
+          <div style="flex:none; padding:4px 22px 0; display:flex; align-items:center; gap:6px;">
+            <span style="font-size:22px; color:#5B8A7D; font-weight:600;">&lsaquo;</span><span style="font-size:15px; color:#5B8A7D; font-weight:500;">Library</span>
+          </div>
+          <div style="flex:none; padding:10px 24px 0;">
+            <div style="font-size:27px; font-weight:700; color:#26241F; letter-spacing:-0.02em;">Caf&eacute; &amp; Food</div>
+            <div style="font-size:14px; color:#9A9183; margin-top:2px;">12 sentences</div>
+            <!-- play all bar -->
+            <div style="margin-top:14px; background:#5B8A7D; border-radius:15px; padding:13px 16px; display:flex; align-items:center; gap:13px; box-shadow:0 6px 16px rgba(91,138,125,0.3);">
+              <div style="width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,0.18); display:flex; align-items:center; justify-content:center;"><div style="width:0; height:0; border-left:12px solid #fff; border-top:7px solid transparent; border-bottom:7px solid transparent; margin-left:3px;"></div></div>
+              <div style="flex:1;">
+                <div style="font-size:15px; font-weight:600; color:#fff;">Play all</div>
+                <div style="font-size:12px; color:rgba(255,255,255,0.8);">EN &rarr; GR &middot; 3s gap</div>
+              </div>
+              <span style="font-size:13px; color:rgba(255,255,255,0.92); font-weight:500; border:1px solid rgba(255,255,255,0.4); border-radius:9px; padding:5px 10px;">Options</span>
+            </div>
+          </div>
+          <div style="flex:1; overflow:hidden; padding:14px 24px 0;">
+            <!-- row -->
+            <div style="display:flex; align-items:flex-start; gap:12px; padding:13px 0; border-bottom:1px solid #ECE8DF;">
+              <div style="width:30px; height:30px; border-radius:50%; background:#E6EFEC; flex:none; display:flex; align-items:center; justify-content:center; margin-top:1px;"><div style="width:0; height:0; border-left:8px solid #5B8A7D; border-top:5px solid transparent; border-bottom:5px solid transparent; margin-left:2px;"></div></div>
+              <div style="flex:1;">
+                <div style="font-size:15px; font-weight:500; color:#26241F; line-height:1.35;">Good morning, how are you?</div>
+                <div style="font-family:'Literata',Georgia,serif; font-size:15px; color:#6F6A60; margin-top:3px; line-height:1.4;">&#922;&#945;&#955;&#951;&#956;&#941;&#961;&#945;, &#960;&#974;&#962; &#949;&#943;&#963;&#964;&#949;;</div>
+              </div>
+              <span style="color:#C9A24B; font-size:17px; margin-top:1px;">&#9733;</span>
+            </div>
+            <div style="display:flex; align-items:flex-start; gap:12px; padding:13px 0; border-bottom:1px solid #ECE8DF;">
+              <div style="width:30px; height:30px; border-radius:50%; background:#E6EFEC; flex:none; display:flex; align-items:center; justify-content:center; margin-top:1px;"><div style="width:0; height:0; border-left:8px solid #5B8A7D; border-top:5px solid transparent; border-bottom:5px solid transparent; margin-left:2px;"></div></div>
+              <div style="flex:1;">
+                <div style="font-size:15px; font-weight:500; color:#26241F; line-height:1.35;">I would like a coffee, please.</div>
+                <div style="font-family:'Literata',Georgia,serif; font-size:15px; color:#6F6A60; margin-top:3px; line-height:1.4;">&#920;&#945; &#942;&#952;&#949;&#955;&#945; &#941;&#957;&#945;&#957; &#954;&#945;&#966;&#941;, &#960;&#945;&#961;&#945;&#954;&#945;&#955;&#974;.</div>
+              </div>
+              <div style="width:18px; height:18px; flex:none; display:flex; align-items:center; justify-content:center; margin-top:2px;"><div style="width:6px; height:11px; border-right:2.5px solid #5B8A7D; border-bottom:2.5px solid #5B8A7D; transform:rotate(42deg); margin-top:-3px;"></div></div>
+            </div>
+            <div style="display:flex; align-items:flex-start; gap:12px; padding:13px 0; border-bottom:1px solid #ECE8DF;">
+              <div style="width:30px; height:30px; border-radius:50%; background:#E6EFEC; flex:none; display:flex; align-items:center; justify-content:center; margin-top:1px;"><div style="width:0; height:0; border-left:8px solid #5B8A7D; border-top:5px solid transparent; border-bottom:5px solid transparent; margin-left:2px;"></div></div>
+              <div style="flex:1;">
+                <div style="font-size:15px; font-weight:500; color:#26241F; line-height:1.35;">How much does this cost?</div>
+                <div style="font-family:'Literata',Georgia,serif; font-size:15px; color:#6F6A60; margin-top:3px; line-height:1.4;">&#928;&#972;&#963;&#959; &#954;&#959;&#963;&#964;&#943;&#950;&#949;&#953; &#945;&#965;&#964;&#972;;</div>
+              </div>
+              <span style="color:#D8D0BF; font-size:17px; margin-top:1px;">&#9734;</span>
+            </div>
+            <div style="display:flex; align-items:flex-start; gap:12px; padding:13px 0; border-bottom:1px solid #ECE8DF;">
+              <div style="width:30px; height:30px; border-radius:50%; background:#F0EBE1; flex:none; display:flex; align-items:center; justify-content:center; margin-top:1px;"><div style="width:0; height:0; border-left:8px solid #B7AF9F; border-top:5px solid transparent; border-bottom:5px solid transparent; margin-left:2px;"></div></div>
+              <div style="flex:1;">
+                <div style="font-size:15px; font-weight:500; color:#26241F; line-height:1.35;">The bill, please.</div>
+                <div style="font-size:13px; color:#B7AF9F; margin-top:3px; font-style:italic;">Tap to translate &amp; narrate</div>
+              </div>
+              <span style="color:#D8D0BF; font-size:17px; margin-top:1px;">&#9734;</span>
+            </div>
+          </div>
+
+          <div style="position:relative; flex:none; height:86px; background:rgba(246,244,239,0.92); backdrop-filter:blur(12px); border-top:1px solid #ECE8DF; display:flex; align-items:flex-start; justify-content:space-around; padding-top:12px;">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:5px; width:80px;"><div style="display:flex; flex-direction:column; gap:3px;"><div style="width:22px; height:6px; border-radius:2px; background:#5B8A7D;"></div><div style="width:22px; height:6px; border-radius:2px; background:#5B8A7D; opacity:0.45;"></div></div><span style="font-size:11px; font-weight:600; color:#5B8A7D;">Library</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:5px; width:80px;"><div style="display:flex; flex-direction:column; gap:5px; width:22px; opacity:0.75;"><div style="position:relative; height:3px; background:#9A9183; border-radius:2px;"><div style="position:absolute; left:3px; top:-2px; width:7px; height:7px; border-radius:50%; background:#9A9183;"></div></div><div style="position:relative; height:3px; background:#9A9183; border-radius:2px;"><div style="position:absolute; right:3px; top:-2px; width:7px; height:7px; border-radius:50%; background:#9A9183;"></div></div></div><span style="font-size:11px; font-weight:500; color:#9A9183;">Settings</span></div>
+            <div style="position:absolute; top:-22px; left:50%; transform:translateX(-50%); width:62px; height:62px; border-radius:50%; background:#5B8A7D; box-shadow:0 8px 20px rgba(91,138,125,0.45); display:flex; align-items:center; justify-content:center;"><div style="position:relative; width:24px; height:24px;"><div style="position:absolute; top:11px; left:0; width:24px; height:2.5px; background:#fff; border-radius:2px;"></div><div style="position:absolute; left:11px; top:0; width:2.5px; height:24px; background:#fff; border-radius:2px;"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 3. SENTENCE DETAIL ============ -->
+    <div style="flex:none; width:412px;">
+      <div style="font-size:13px; font-weight:600; color:#57523F; margin-bottom:12px;">3 &middot; Sentence detail &amp; playback</div>
+      <div style="background:#111010; border-radius:48px; padding:11px; box-shadow:0 18px 50px rgba(0,0,0,0.16);">
+        <div data-screen-label="Sentence detail" style="position:relative; width:390px; height:812px; border-radius:38px; overflow:hidden; background:#F6F4EF; display:flex; flex-direction:column;">
+          <div style="position:absolute; top:11px; left:50%; transform:translateX(-50%); width:112px; height:32px; background:#111010; border-radius:18px; z-index:6;"></div>
+          <div style="height:52px; flex:none; display:flex; align-items:flex-end; justify-content:space-between; padding:0 28px 6px; font-size:14px; font-weight:600; color:#26241F;"><span>9:41</span><span style="width:17px; height:11px; border:1.5px solid #26241F; border-radius:3px;"></span></div>
+          <div style="flex:none; padding:4px 22px 0; display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-size:22px; color:#5B8A7D; font-weight:600;">&lsaquo; <span style="font-size:15px; font-weight:500;">Caf&eacute; &amp; Food</span></span>
+            <span style="display:flex; gap:14px; align-items:center;"><span style="color:#C9A24B; font-size:19px;">&#9733;</span></span>
+          </div>
+
+          <div style="flex:1; overflow:hidden; padding:24px 26px 0; display:flex; flex-direction:column;">
+            <div style="font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color:#9A9183; font-weight:600;">English &middot; 1 of 12</div>
+            <div style="font-size:25px; font-weight:600; color:#26241F; line-height:1.3; margin-top:10px; letter-spacing:-0.01em;">I would like a coffee, please.</div>
+
+            <div style="height:1px; background:#E7E3DA; margin:24px 0;"></div>
+
+            <div style="font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color:#9A9183; font-weight:600;">&#917;&#955;&#955;&#951;&#957;&#953;&#954;&#940;</div>
+            <div style="font-family:'Literata',Georgia,serif; font-size:26px; color:#3A4A45; line-height:1.4; margin-top:10px;">&#920;&#945; &#942;&#952;&#949;&#955;&#945; &#941;&#957;&#945;&#957; &#954;&#945;&#966;&#941;, &#960;&#945;&#961;&#945;&#954;&#945;&#955;&#974;.</div>
+
+            <!-- play row -->
+            <div style="display:flex; gap:12px; margin-top:28px;">
+              <div style="flex:1; background:#FFFFFF; border:1px solid #ECE8DF; border-radius:14px; padding:14px; display:flex; align-items:center; justify-content:center; gap:9px;"><div style="width:0; height:0; border-left:10px solid #26241F; border-top:6px solid transparent; border-bottom:6px solid transparent;"></div><span style="font-size:14px; font-weight:600; color:#26241F;">English</span></div>
+              <div style="flex:1; background:#5B8A7D; border-radius:14px; padding:14px; display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 6px 14px rgba(91,138,125,0.3);"><div style="width:0; height:0; border-left:10px solid #fff; border-top:6px solid transparent; border-bottom:6px solid transparent;"></div><span style="font-size:14px; font-weight:600; color:#fff;">&#917;&#955;&#955;&#951;&#957;&#953;&#954;&#940;</span></div>
+            </div>
+
+            <!-- speed -->
+            <div style="margin-top:20px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><span style="font-size:14px; font-weight:600; color:#26241F;">Greek speed</span><span style="font-size:13px; color:#9A9183;">Slow</span></div>
+              <div style="display:flex; gap:8px;">
+                <div style="flex:1; text-align:center; font-size:13px; font-weight:600; color:#5B8A7D; background:#E6EFEC; border-radius:10px; padding:9px 0;">0.7&times;</div>
+                <div style="flex:1; text-align:center; font-size:13px; font-weight:500; color:#9A9183; background:#FFFFFF; border:1px solid #ECE8DF; border-radius:10px; padding:9px 0;">0.85&times;</div>
+                <div style="flex:1; text-align:center; font-size:13px; font-weight:500; color:#9A9183; background:#FFFFFF; border:1px solid #ECE8DF; border-radius:10px; padding:9px 0;">1.0&times;</div>
+              </div>
+            </div>
+
+            <!-- toggles -->
+            <div style="margin-top:18px; display:flex; gap:10px;">
+              <div style="flex:1; background:#FFFFFF; border:1px solid #ECE8DF; border-radius:13px; padding:13px; display:flex; align-items:center; gap:9px;"><span style="font-size:18px; color:#5B8A7D;">&#8635;</span><span style="font-size:14px; font-weight:600; color:#26241F;">Loop</span><span style="margin-left:auto; width:38px; height:22px; border-radius:11px; background:#5B8A7D; position:relative;"><span style="position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%; background:#fff;"></span></span></div>
+            </div>
+
+            <div style="margin-top:18px; display:flex; gap:10px;">
+              <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px; font-size:13px; color:#9A9183;"><span style="width:7px; height:7px; border-radius:50%; background:#5B8A7D;"></span>Translation &amp; audio cached</div>
+            </div>
+            <div style="margin-top:12px; display:flex; gap:10px;">
+              <div style="flex:1; text-align:center; font-size:13px; font-weight:600; color:#6F6A60; border:1px solid #E0DBD0; border-radius:11px; padding:11px 0;">Re-translate</div>
+              <div style="flex:1; text-align:center; font-size:13px; font-weight:600; color:#6F6A60; border:1px solid #E0DBD0; border-radius:11px; padding:11px 0;">Regenerate audio</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 4. QUICK ADD ============ -->
+    <div style="flex:none; width:412px;">
+      <div style="font-size:13px; font-weight:600; color:#57523F; margin-bottom:12px;">4 &middot; Quick add (notebook)</div>
+      <div style="background:#111010; border-radius:48px; padding:11px; box-shadow:0 18px 50px rgba(0,0,0,0.16);">
+        <div data-screen-label="Quick add" style="position:relative; width:390px; height:812px; border-radius:38px; overflow:hidden; background:#F6F4EF; display:flex; flex-direction:column;">
+          <div style="position:absolute; top:11px; left:50%; transform:translateX(-50%); width:112px; height:32px; background:#111010; border-radius:18px; z-index:6;"></div>
+          <div style="height:52px; flex:none; display:flex; align-items:flex-end; justify-content:space-between; padding:0 28px 6px; font-size:14px; font-weight:600; color:#26241F;"><span>9:41</span><span style="width:17px; height:11px; border:1.5px solid #26241F; border-radius:3px;"></span></div>
+          <div style="flex:none; padding:6px 24px 0; display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-size:15px; color:#9A9183; font-weight:500;">Cancel</span>
+            <span style="font-size:16px; font-weight:600; color:#26241F;">New sentence</span>
+            <span style="font-size:15px; color:#C9C2B2; font-weight:600;">Save</span>
+          </div>
+          <div style="flex:1; overflow:hidden; padding:22px 24px 0;">
+            <div style="font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color:#9A9183; font-weight:600; margin-bottom:10px;">Write in English</div>
+            <div style="background:#FFFFFF; border:1px solid #ECE8DF; border-radius:15px; padding:16px; min-height:130px; font-size:18px; color:#26241F; line-height:1.4;">Could you bring some water?<span style="display:inline-block; width:2px; height:21px; background:#5B8A7D; vertical-align:-4px; margin-left:1px;"></span></div>
+
+            <div style="display:flex; align-items:center; gap:10px; margin-top:18px; background:#FFFFFF; border:1px solid #ECE8DF; border-radius:13px; padding:13px 15px;">
+              <span style="width:7px; height:7px; border-radius:50%; background:#5B8A7D;"></span>
+              <span style="font-size:15px; color:#26241F; flex:1;">Auto-translate on save</span>
+              <span style="width:40px; height:24px; border-radius:12px; background:#5B8A7D; position:relative;"><span style="position:absolute; top:2px; right:2px; width:20px; height:20px; border-radius:50%; background:#fff;"></span></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:11px; background:#FFFFFF; border:1px solid #ECE8DF; border-radius:13px; padding:13px 15px;">
+              <span style="width:7px; height:7px; border-radius:50%; background:#5B8A7D;"></span>
+              <span style="font-size:15px; color:#26241F; flex:1;">Generate narration on save</span>
+              <span style="width:40px; height:24px; border-radius:12px; background:#5B8A7D; position:relative;"><span style="position:absolute; top:2px; right:2px; width:20px; height:20px; border-radius:50%; background:#fff;"></span></span>
+            </div>
+
+            <div style="font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color:#9A9183; font-weight:600; margin:24px 0 11px;">Save to collection</div>
+            <div style="display:flex; flex-wrap:wrap; gap:9px;">
+              <span style="font-size:14px; font-weight:600; color:#fff; background:#5B8A7D; border-radius:11px; padding:9px 14px;">Caf&eacute; &amp; Food</span>
+              <span style="font-size:14px; font-weight:500; color:#6F6A60; background:#FFFFFF; border:1px solid #ECE8DF; border-radius:11px; padding:9px 14px;">Everyday Phrases</span>
+              <span style="font-size:14px; font-weight:500; color:#6F6A60; background:#FFFFFF; border:1px solid #ECE8DF; border-radius:11px; padding:9px 14px;">Travel</span>
+              <span style="font-size:14px; font-weight:500; color:#5B8A7D; background:#FFFFFF; border:1px dashed #B7C9C2; border-radius:11px; padding:9px 14px;">+ New</span>
+            </div>
+
+            <div style="margin-top:26px; background:#EFEDE6; border-radius:13px; padding:14px 16px; font-size:13px; color:#8C8579; line-height:1.5;">Tip: keep this open and jot sentences as they come to you &mdash; translation and audio fill in automatically and stay cached.</div>
+          </div>
+          <div style="flex:none; padding:16px 24px 30px;">
+            <div style="background:#5B8A7D; border-radius:15px; padding:16px; text-align:center; font-size:16px; font-weight:600; color:#fff; box-shadow:0 6px 16px rgba(91,138,125,0.3);">Save sentence</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 5. SETTINGS ============ -->
+    <div style="flex:none; width:412px;">
+      <div style="font-size:13px; font-weight:600; color:#57523F; margin-bottom:12px;">5 &middot; Settings</div>
+      <div style="background:#111010; border-radius:48px; padding:11px; box-shadow:0 18px 50px rgba(0,0,0,0.16);">
+        <div data-screen-label="Settings" style="position:relative; width:390px; height:812px; border-radius:38px; overflow:hidden; background:#F6F4EF; display:flex; flex-direction:column;">
+          <div style="position:absolute; top:11px; left:50%; transform:translateX(-50%); width:112px; height:32px; background:#111010; border-radius:18px; z-index:6;"></div>
+          <div style="height:52px; flex:none; display:flex; align-items:flex-end; justify-content:space-between; padding:0 28px 6px; font-size:14px; font-weight:600; color:#26241F;"><span>9:41</span><span style="width:17px; height:11px; border:1.5px solid #26241F; border-radius:3px;"></span></div>
+          <div style="flex:1; overflow:hidden; padding:8px 24px 0;">
+            <div style="font-size:30px; font-weight:700; color:#26241F; letter-spacing:-0.02em;">Settings</div>
+
+            <div style="font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:#9A9183; font-weight:600; margin:22px 0 10px;">Voices</div>
+            <div style="background:#FFFFFF; border:1px solid #ECE8DF; border-radius:15px; overflow:hidden;">
+              <div style="display:flex; align-items:center; padding:15px 16px; border-bottom:1px solid #F0ECE3;"><span style="font-size:15px; color:#26241F; flex:1;">English voice</span><span style="font-size:14px; color:#6F6A60; font-weight:500;">Rachel</span><span style="color:#C9C2B2; font-size:19px; margin-left:8px;">&rsaquo;</span></div>
+              <div style="display:flex; align-items:center; padding:15px 16px;"><span style="font-size:15px; color:#26241F; flex:1;">Greek voice</span><span style="font-size:14px; color:#6F6A60; font-weight:500;">Nikos</span><span style="color:#C9C2B2; font-size:19px; margin-left:8px;">&rsaquo;</span></div>
+            </div>
+
+            <div style="font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:#9A9183; font-weight:600; margin:22px 0 10px;">Playback defaults</div>
+            <div style="background:#FFFFFF; border:1px solid #ECE8DF; border-radius:15px; overflow:hidden;">
+              <div style="display:flex; align-items:center; padding:15px 16px; border-bottom:1px solid #F0ECE3;"><span style="font-size:15px; color:#26241F; flex:1;">Order</span><span style="font-size:14px; color:#6F6A60; font-weight:500;">English &rarr; Greek</span><span style="color:#C9C2B2; font-size:19px; margin-left:8px;">&rsaquo;</span></div>
+              <div style="display:flex; align-items:center; padding:15px 16px; border-bottom:1px solid #F0ECE3;"><span style="font-size:15px; color:#26241F; flex:1;">Gap between sentences</span><span style="font-size:14px; color:#6F6A60; font-weight:500;">3 sec</span><span style="color:#C9C2B2; font-size:19px; margin-left:8px;">&rsaquo;</span></div>
+              <div style="display:flex; align-items:center; padding:15px 16px;"><span style="font-size:15px; color:#26241F; flex:1;">Greek speed</span><span style="font-size:14px; color:#6F6A60; font-weight:500;">0.85&times;</span><span style="color:#C9C2B2; font-size:19px; margin-left:8px;">&rsaquo;</span></div>
+            </div>
+
+            <div style="font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:#9A9183; font-weight:600; margin:22px 0 10px;">API keys</div>
+            <div style="background:#FFFFFF; border:1px solid #ECE8DF; border-radius:15px; overflow:hidden;">
+              <div style="display:flex; align-items:center; padding:15px 16px; border-bottom:1px solid #F0ECE3;"><span style="font-size:15px; color:#26241F; flex:1;">ElevenLabs</span><span style="font-size:13px; color:#5B8A7D; font-weight:600;">&#9679;&#9679;&#9679;&#9679; Connected</span></div>
+              <div style="display:flex; align-items:center; padding:15px 16px;"><span style="font-size:15px; color:#26241F; flex:1;">Google Translate</span><span style="font-size:13px; color:#5B8A7D; font-weight:600;">&#9679;&#9679;&#9679;&#9679; Connected</span></div>
+            </div>
+            <div style="margin-top:18px; font-size:12px; color:#B0A795; text-align:center;">Keys are stored only on this device.</div>
+          </div>
+
+          <div style="position:relative; flex:none; height:86px; background:rgba(246,244,239,0.92); backdrop-filter:blur(12px); border-top:1px solid #ECE8DF; display:flex; align-items:flex-start; justify-content:space-around; padding-top:12px;">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:5px; width:80px;"><div style="display:flex; flex-direction:column; gap:3px; opacity:0.7;"><div style="width:22px; height:6px; border-radius:2px; background:#9A9183;"></div><div style="width:22px; height:6px; border-radius:2px; background:#9A9183; opacity:0.5;"></div></div><span style="font-size:11px; font-weight:500; color:#9A9183;">Library</span></div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:5px; width:80px;"><div style="display:flex; flex-direction:column; gap:5px; width:22px;"><div style="position:relative; height:3px; background:#5B8A7D; border-radius:2px;"><div style="position:absolute; left:3px; top:-2px; width:7px; height:7px; border-radius:50%; background:#5B8A7D;"></div></div><div style="position:relative; height:3px; background:#5B8A7D; border-radius:2px;"><div style="position:absolute; right:3px; top:-2px; width:7px; height:7px; border-radius:50%; background:#5B8A7D;"></div></div></div><span style="font-size:11px; font-weight:600; color:#5B8A7D;">Settings</span></div>
+            <div style="position:absolute; top:-22px; left:50%; transform:translateX(-50%); width:62px; height:62px; border-radius:50%; background:#5B8A7D; box-shadow:0 8px 20px rgba(91,138,125,0.45); display:flex; align-items:center; justify-content:center;"><div style="position:relative; width:24px; height:24px;"><div style="position:absolute; top:11px; left:0; width:24px; height:2.5px; background:#fff; border-radius:2px;"></div><div style="position:absolute; left:11px; top:0; width:2.5px; height:24px; background:#fff; border-radius:2px;"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ROW 2: PLAYBACK CONTROLS -->
+  <div style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:#9A9183; font-weight:600; margin:48px 0 6px;">Global playback &mdash; one flow, two looks</div>
+  <div style="font-size:14px; color:#6F6A60; margin-bottom:18px; max-width:660px;">The setup sheet (A) is the default entry point: pick order, gap, and <strong style="color:#26241F; font-weight:600;">how playback looks</strong> &mdash; compact bar (B) or immersive (C). Press play and you land in whichever you chose.</div>
+
+  <div style="display:flex; gap:40px; align-items:flex-start;">
+
+    <!-- VARIANT A: bottom sheet -->
+    <div style="flex:none; width:412px;">
+      <div style="font-size:13px; font-weight:600; color:#57523F; margin-bottom:4px;">A &middot; Setup sheet <span style="color:#5B8A7D;">&middot; default</span></div>
+      <div style="font-size:12.5px; color:#8C8579; margin-bottom:12px;">Order, gap, and which look to play in.</div>
+      <div style="background:#111010; border-radius:48px; padding:11px; box-shadow:0 18px 50px rgba(0,0,0,0.16);">
+        <div data-screen-label="Playback A" style="position:relative; width:390px; height:812px; border-radius:38px; overflow:hidden; background:#F6F4EF; display:flex; flex-direction:column;">
+          <div style="position:absolute; top:11px; left:50%; transform:translateX(-50%); width:112px; height:32px; background:#111010; border-radius:18px; z-index:6;"></div>
+          <!-- dimmed list behind -->
+          <div style="position:absolute; inset:0; padding:60px 24px 0; opacity:0.4;">
+            <div style="font-size:27px; font-weight:700; color:#26241F;">Caf&eacute; &amp; Food</div>
+            <div style="margin-top:20px; height:1px; background:#E7E3DA;"></div>
+            <div style="padding:16px 0; border-bottom:1px solid #E7E3DA; font-size:15px; color:#26241F;">Good morning, how are you?</div>
+            <div style="padding:16px 0; border-bottom:1px solid #E7E3DA; font-size:15px; color:#26241F;">I would like a coffee, please.</div>
+          </div>
+          <div style="position:absolute; inset:0; background:rgba(38,36,31,0.32);"></div>
+          <!-- sheet -->
+          <div style="position:absolute; left:0; right:0; bottom:0; background:#F6F4EF; border-radius:26px 26px 0 0; padding:14px 26px 32px; box-shadow:0 -10px 40px rgba(0,0,0,0.18);">
+            <div style="width:40px; height:5px; border-radius:3px; background:#D8D0BF; margin:0 auto 18px;"></div>
+            <div style="font-size:20px; font-weight:700; color:#26241F;">Play all</div>
+            <div style="font-size:13px; color:#9A9183; margin-top:2px;">12 sentences</div>
+
+            <div style="font-size:13px; font-weight:600; color:#57523F; margin:22px 0 10px;">Order</div>
+            <div style="display:flex; flex-wrap:wrap; gap:9px;">
+              <span style="font-size:14px; font-weight:500; color:#6F6A60; background:#FFFFFF; border:1px solid #ECE8DF; border-radius:11px; padding:10px 14px;">English only</span>
+              <span style="font-size:14px; font-weight:500; color:#6F6A60; background:#FFFFFF; border:1px solid #ECE8DF; border-radius:11px; padding:10px 14px;">Greek only</span>
+              <span style="font-size:14px; font-weight:600; color:#fff; background:#5B8A7D; border-radius:11px; padding:10px 14px;">English &rarr; Greek</span>
+              <span style="font-size:14px; font-weight:500; color:#6F6A60; background:#FFFFFF; border:1px solid #ECE8DF; border-radius:11px; padding:10px 14px;">Greek &rarr; English</span>
+            </div>
+
+            <div style="font-size:13px; font-weight:600; color:#57523F; margin:22px 0 10px;">Pause between sentences</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; background:#FFFFFF; border:1px solid #ECE8DF; border-radius:13px; padding:8px 10px;">
+              <div style="width:42px; height:42px; border-radius:10px; background:#F0EDE6; display:flex; align-items:center; justify-content:center; font-size:24px; color:#6F6A60; font-weight:500;">&minus;</div>
+              <div style="text-align:center;"><span style="font-size:24px; font-weight:700; color:#26241F;">3</span><span style="font-size:15px; color:#9A9183; margin-left:3px;">seconds</span></div>
+              <div style="width:42px; height:42px; border-radius:10px; background:#E6EFEC; display:flex; align-items:center; justify-content:center; font-size:24px; color:#5B8A7D; font-weight:500;">+</div>
+            </div>
+
+            <div style="font-size:13px; font-weight:600; color:#57523F; margin:22px 0 10px;">While playing</div>
+            <div style="display:flex; gap:9px;">
+              <div style="flex:1; background:#E6EFEC; border:1px solid #C9DDD6; border-radius:12px; padding:13px; display:flex; align-items:center; gap:10px;"><div style="width:20px; height:26px; border:2px solid #5B8A7D; border-radius:4px; flex:none; display:flex; align-items:flex-end; padding:2px;"><div style="width:100%; height:7px; background:#5B8A7D; border-radius:2px;"></div></div><span style="font-size:14px; font-weight:600; color:#26241F;">Compact bar</span></div>
+              <div style="flex:1; background:#FFFFFF; border:1px solid #ECE8DF; border-radius:12px; padding:13px; display:flex; align-items:center; gap:10px;"><div style="width:20px; height:26px; border:2px solid #B7AF9F; border-radius:4px; flex:none; display:flex; align-items:center; justify-content:center;"><div style="width:11px; height:3px; background:#B7AF9F; border-radius:2px;"></div></div><span style="font-size:14px; font-weight:500; color:#6F6A60;">Immersive</span></div>
+            </div>
+
+            <div style="margin-top:24px; background:#5B8A7D; border-radius:15px; padding:17px; display:flex; align-items:center; justify-content:center; gap:11px; box-shadow:0 8px 18px rgba(91,138,125,0.35);"><div style="width:0; height:0; border-left:13px solid #fff; border-top:8px solid transparent; border-bottom:8px solid transparent;"></div><span style="font-size:17px; font-weight:600; color:#fff;">Start playing</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VARIANT B: mini player -->
+    <div style="flex:none; width:412px;">
+      <div style="font-size:13px; font-weight:600; color:#57523F; margin-bottom:4px;">B &middot; Compact bar</div>
+      <div style="font-size:12.5px; color:#8C8579; margin-bottom:12px;">Docked &mdash; scroll the list while it plays.</div>
+      <div style="background:#111010; border-radius:48px; padding:11px; box-shadow:0 18px 50px rgba(0,0,0,0.16);">
+        <div data-screen-label="Playback B" style="position:relative; width:390px; height:812px; border-radius:38px; overflow:hidden; background:#F6F4EF; display:flex; flex-direction:column;">
+          <div style="position:absolute; top:11px; left:50%; transform:translateX(-50%); width:112px; height:32px; background:#111010; border-radius:18px; z-index:6;"></div>
+          <div style="height:52px; flex:none; display:flex; align-items:flex-end; justify-content:space-between; padding:0 28px 6px; font-size:14px; font-weight:600; color:#26241F;"><span>9:41</span><span style="width:17px; height:11px; border:1.5px solid #26241F; border-radius:3px;"></span></div>
+          <div style="flex:none; padding:8px 24px 0;"><div style="font-size:27px; font-weight:700; color:#26241F;">Caf&eacute; &amp; Food</div></div>
+          <div style="flex:1; overflow:hidden; padding:16px 24px 0;">
+            <div style="padding:13px 0; border-bottom:1px solid #ECE8DF; opacity:0.5;"><div style="font-size:15px; color:#26241F;">Good morning, how are you?</div></div>
+            <!-- now playing row -->
+            <div style="padding:13px 14px; margin:6px -12px; background:#E6EFEC; border-radius:13px;"><div style="font-size:15px; font-weight:600; color:#26241F;">I would like a coffee, please.</div><div style="font-family:'Literata',Georgia,serif; font-size:15px; color:#3A4A45; margin-top:3px;">&#920;&#945; &#942;&#952;&#949;&#955;&#945; &#941;&#957;&#945;&#957; &#954;&#945;&#966;&#941;...</div></div>
+            <div style="padding:13px 0; border-bottom:1px solid #ECE8DF;"><div style="font-size:15px; color:#26241F;">How much does this cost?</div></div>
+            <div style="padding:13px 0; border-bottom:1px solid #ECE8DF; opacity:0.85;"><div style="font-size:15px; color:#26241F;">The bill, please.</div></div>
+          </div>
+          <!-- mini player dock -->
+          <div style="flex:none; margin:0 12px; background:#26241F; border-radius:18px; padding:14px 16px; box-shadow:0 10px 28px rgba(0,0,0,0.22);">
+            <div style="height:3px; border-radius:2px; background:rgba(255,255,255,0.2); margin-bottom:13px; position:relative;"><div style="position:absolute; left:0; top:0; height:3px; width:34%; background:#8FBDB1; border-radius:2px;"></div></div>
+            <div style="display:flex; align-items:center; gap:14px;">
+              <div style="flex:1;"><div style="font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:#8FBDB1; font-weight:600;">Now &middot; 2 of 12 &middot; Greek</div><div style="font-size:14px; color:#fff; font-weight:500; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">I would like a coffee, please.</div></div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:11px; height:13px; display:flex; gap:2px;"><div style="width:3px; height:13px; background:rgba(255,255,255,0.55);"></div><div style="width:0;height:0;border-right:8px solid rgba(255,255,255,0.55);border-top:6px solid transparent;border-bottom:6px solid transparent;margin-top:1px;"></div></div>
+                <div style="width:42px; height:42px; border-radius:50%; background:#5B8A7D; display:flex; align-items:center; justify-content:center;"><div style="display:flex; gap:3px;"><div style="width:4px; height:15px; background:#fff; border-radius:1px;"></div><div style="width:4px; height:15px; background:#fff; border-radius:1px;"></div></div></div>
+                <div style="width:11px; height:13px; display:flex; gap:2px;"><div style="width:0;height:0;border-left:8px solid rgba(255,255,255,0.55);border-top:6px solid transparent;border-bottom:6px solid transparent;margin-top:1px;"></div><div style="width:3px; height:13px; background:rgba(255,255,255,0.55);"></div></div>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:13px;">
+              <span style="font-size:12px; color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.12); border-radius:8px; padding:6px 10px;">EN &rarr; GR</span>
+              <span style="font-size:12px; color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.12); border-radius:8px; padding:6px 10px;">3s gap</span>
+              <span style="font-size:12px; color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.12); border-radius:8px; padding:6px 10px;">0.85&times;</span>
+              <span style="margin-left:auto; font-size:12px; color:#8FBDB1; font-weight:600; padding:6px 4px;">Edit</span>
+            </div>
+          </div>
+          <div style="flex:none; height:18px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VARIANT C: now playing fullscreen -->
+    <div style="flex:none; width:412px;">
+      <div style="font-size:13px; font-weight:600; color:#57523F; margin-bottom:4px;">C &middot; Immersive player</div>
+      <div style="font-size:12.5px; color:#8C8579; margin-bottom:12px;">Full focus on the current sentence.</div>
+      <div style="background:#111010; border-radius:48px; padding:11px; box-shadow:0 18px 50px rgba(0,0,0,0.16);">
+        <div data-screen-label="Playback C" style="position:relative; width:390px; height:812px; border-radius:38px; overflow:hidden; background:#2E3B37; display:flex; flex-direction:column;">
+          <div style="position:absolute; top:11px; left:50%; transform:translateX(-50%); width:112px; height:32px; background:#000; border-radius:18px; z-index:6;"></div>
+          <div style="height:52px; flex:none; display:flex; align-items:flex-end; justify-content:space-between; padding:0 28px 6px; font-size:14px; font-weight:600; color:#E8EDEB;"><span>9:41</span><span style="width:17px; height:11px; border:1.5px solid #E8EDEB; border-radius:3px;"></span></div>
+          <div style="flex:none; padding:8px 26px 0; display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-size:24px; color:rgba(255,255,255,0.7);">&#9663;</span>
+            <span style="font-size:13px; letter-spacing:0.06em; color:rgba(255,255,255,0.6); font-weight:600;">CAF&Eacute; &amp; FOOD</span>
+            <span style="font-size:20px; color:rgba(255,255,255,0.7);">&#8943;</span>
+          </div>
+
+          <div style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:0 32px;">
+            <div style="display:flex; gap:6px; margin-bottom:34px;">
+              <div style="flex:1; height:4px; border-radius:2px; background:rgba(255,255,255,0.5);"></div>
+              <div style="flex:1; height:4px; border-radius:2px; background:rgba(255,255,255,0.18);"></div>
+              <div style="flex:1; height:4px; border-radius:2px; background:rgba(255,255,255,0.18);"></div>
+              <div style="flex:1; height:4px; border-radius:2px; background:rgba(255,255,255,0.18);"></div>
+            </div>
+            <div style="font-size:13px; letter-spacing:0.1em; text-transform:uppercase; color:#9FC4BA; font-weight:600;">Greek &middot; now playing</div>
+            <div style="font-family:'Literata',Georgia,serif; font-size:30px; color:#fff; line-height:1.32; margin-top:16px;">&#920;&#945; &#942;&#952;&#949;&#955;&#945; &#941;&#957;&#945;&#957; &#954;&#945;&#966;&#941;, &#960;&#945;&#961;&#945;&#954;&#945;&#955;&#974;.</div>
+            <div style="font-size:18px; color:rgba(255,255,255,0.55); line-height:1.4; margin-top:18px;">I would like a coffee, please.</div>
+
+            <div style="display:flex; gap:8px; margin-top:30px;">
+              <span style="font-size:12px; color:rgba(255,255,255,0.8); background:rgba(255,255,255,0.1); border-radius:9px; padding:7px 12px;">EN &rarr; GR</span>
+              <span style="font-size:12px; color:rgba(255,255,255,0.8); background:rgba(255,255,255,0.1); border-radius:9px; padding:7px 12px;">3s gap</span>
+              <span style="font-size:12px; color:rgba(255,255,255,0.8); background:rgba(255,255,255,0.1); border-radius:9px; padding:7px 12px;">0.85&times;</span>
+            </div>
+          </div>
+
+          <div style="flex:none; padding:0 40px 56px; display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; gap:5px; align-items:center;"><div style="width:4px; height:18px; background:rgba(255,255,255,0.7); border-radius:1px;"></div><div style="width:0;height:0;border-right:13px solid rgba(255,255,255,0.7);border-top:9px solid transparent;border-bottom:9px solid transparent;"></div></div>
+            <div style="width:76px; height:76px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center;"><div style="display:flex; gap:5px;"><div style="width:6px; height:26px; background:#2E3B37; border-radius:2px;"></div><div style="width:6px; height:26px; background:#2E3B37; border-radius:2px;"></div></div></div>
+            <div style="display:flex; gap:5px; align-items:center;"><div style="width:0;height:0;border-left:13px solid rgba(255,255,255,0.7);border-top:9px solid transparent;border-bottom:9px solid transparent;"></div><div style="width:4px; height:18px; background:rgba(255,255,255,0.7); border-radius:1px;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

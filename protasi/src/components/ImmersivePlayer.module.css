@@ -1,0 +1,105 @@
+.screen {
+  position: fixed;
+  inset: 0;
+  background: var(--dark-bg);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 32px calc(40px + var(--safe-bottom));
+}
+
+.dismiss {
+  align-self: flex-start;
+  color: rgba(255,255,255,.5);
+  padding: 4px;
+  margin-bottom: 12px;
+}
+
+.colName {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,.5);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.dots {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 32px;
+  max-width: 280px;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.2);
+  transition: background .2s;
+}
+.dotFilled { background: var(--accent-light); }
+
+.langLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-light);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.textArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.primary {
+  font-size: 26px;
+  color: #fff;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.secondary {
+  font-size: 17px;
+  color: rgba(255,255,255,.4);
+  line-height: 1.4;
+  text-align: center;
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin-top: 32px;
+}
+
+.transportBtn {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: .7;
+}
+.transportBtn:active { opacity: 1; }
+
+.bigPlay {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(91,138,125,.45);
+}
