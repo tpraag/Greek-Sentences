@@ -194,35 +194,6 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* API Keys */}
-        <div className={styles.group}>
-          <div className="label" style={{ marginBottom: 8 }}>API Keys</div>
-          <div className={`card ${styles.card}`}>
-            <div className={styles.row}>
-              <span className={styles.rowLabel}>ElevenLabs</span>
-              <input
-                className={styles.input}
-                type="password"
-                placeholder="sk-…"
-                value={form.elevenLabsKey}
-                onChange={e => set('elevenLabsKey', e.target.value)}
-              />
-            </div>
-            <div className="hairline" />
-            <div className={styles.row}>
-              <span className={styles.rowLabel}>Google Translate</span>
-              <input
-                className={styles.input}
-                type="password"
-                placeholder="AIza…"
-                value={form.googleTranslateKey}
-                onChange={e => set('googleTranslateKey', e.target.value)}
-              />
-            </div>
-          </div>
-          <p className={styles.footnote}>Keys are stored only on this device.</p>
-        </div>
-
         <button className="btn-accent" onClick={handleSave}>
           {saved ? 'Saved ✓' : 'Save settings'}
         </button>

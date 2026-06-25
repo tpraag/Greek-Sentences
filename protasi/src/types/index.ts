@@ -111,8 +111,6 @@ export interface Settings {
   gapSeconds: number
   greekSpeed: GreekSpeed
   defaultPlayerView: PlayerView
-  elevenLabsKey: string
-  googleTranslateKey: string
   autoTranslate: boolean
   autoNarrate: boolean
 }

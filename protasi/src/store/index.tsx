@@ -16,8 +16,6 @@ const DEFAULT_SETTINGS: Settings = {
   gapSeconds: 3,
   greekSpeed: 1.0,
   defaultPlayerView: 'compact',
-  elevenLabsKey: '',
-  googleTranslateKey: '',
   autoTranslate: true,
   autoNarrate: true,
 }
