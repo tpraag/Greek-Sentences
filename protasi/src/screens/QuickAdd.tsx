@@ -7,16 +7,21 @@ import styles from './QuickAdd.module.css'
 interface Props {
   onClose: () => void
   onSaved: (collectionId: string) => void
+  defaultCollectionId?: string | null
 }
 
-export default function QuickAdd({ onClose, onSaved }: Props) {
+export default function QuickAdd({ onClose, onSaved, defaultCollectionId }: Props) {
   const { state, createSentence, createCollection } = useApp()
   const [text, setText] = useState('')
-  const [selectedCol, setSelectedCol] = useState<string | null>(null)
+  const [selectedCol, setSelectedCol] = useState<string | null>(defaultCollectionId ?? null)
 
-  // Auto-select first real (non-temp) collection
+  // Preselect the collection the user is currently in, else the first real one
   useEffect(() => {
     if (!selectedCol) {
+      if (defaultCollectionId && state.collections.some(c => c.id === defaultCollectionId)) {
+        setSelectedCol(defaultCollectionId)
+        return
+      }
       const first = state.collections.find(c => !c.id.startsWith('temp-'))
       if (first) setSelectedCol(first.id)
     }

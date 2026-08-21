@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../store'
 import CollectionIcon from '../components/CollectionIcon'
 import NewCollectionPanel from '../components/NewCollectionPanel'
@@ -14,7 +14,7 @@ interface Props {
 }
 
 export default function CollectionView({ collectionId, onBack, onSentence }: Props) {
-  const { state, loadSentences, updateCollection, deleteCollection, translateSentence, updateSentence, deleteSentence, startPlayback } = useApp()
+  const { state, updateCollection, deleteCollection, translateSentence, updateSentence, deleteSentence, startPlayback, pauseResume } = useApp()
   const [menuOpen, setMenuOpen] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [renameVal, setRenameVal] = useState('')
@@ -23,11 +23,14 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
 
   const col = state.collections.find(c => c.id === collectionId)
   const sentences = state.sentences[collectionId] ?? []
+  const playingRowRef = useRef<HTMLDivElement | null>(null)
 
+  // Scroll to the currently playing sentence
   useEffect(() => {
-    const unsub = loadSentences(collectionId)
-    return unsub
-  }, [collectionId])
+    if (state.playback.active && playingRowRef.current) {
+      playingRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [state.playback.qpos, state.playback.active])
 
   if (!col) return null
 
@@ -66,11 +69,17 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
       translateSentence(s.id, collectionId)
       return
     }
-    startPlayback(collectionId, [s.id], {
+    // Continue from this sentence through the rest, using the current play-all defaults
+    const ids = translated.map(t => t.id)
+    const startIdx = ids.indexOf(s.id)
+    const queue = startIdx >= 0 ? ids.slice(startIdx) : [s.id]
+    startPlayback(collectionId, queue, {
       order: state.settings.order,
-      gapSeconds: 0,
-      view: state.settings.defaultPlayerView,
+      gapSeconds: state.settings.gapSeconds,
+      view: 'immersive',
       greekSpeed: state.settings.greekSpeed,
+      sentenceRepeat: state.settings.sentenceRepeat,
+      loopList: false,
     })
   }
 
@@ -136,29 +145,41 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
             return (
               <SwipeToDelete key={s.id} onDelete={() => deleteSentence(s.id, collectionId)}>
                 <div
+                  ref={isPlaying ? playingRowRef : null}
                   className={`${styles.row} ${isPlaying ? styles.playing : ''}`}
                   onClick={() => onSentence(s.id)}
                   role="button"
                   tabIndex={0}
                 >
                   <button
-                    className={styles.playBtn}
+                    className={`${styles.playBtn} ${isPlaying ? styles.playBtnActive : ''}`}
                     style={{ opacity: s.gr ? 1 : 0.4 }}
-                    onClick={e => { e.stopPropagation(); handlePlayOne(s) }}
+                    onClick={e => {
+                      e.stopPropagation()
+                      if (isPlaying) pauseResume()
+                      else handlePlayOne(s)
+                    }}
                   >
-                    <svg width="10" height="12" viewBox="0 0 12 14" fill={col.color.accent}>
-                      <polygon points="1 1 11 7 1 13"/>
-                    </svg>
+                    {isPlaying && !state.playback.paused ? (
+                      <svg width="10" height="12" viewBox="0 0 12 14" fill="#fff">
+                        <rect x="2" y="1" width="3" height="12" rx="1"/>
+                        <rect x="7" y="1" width="3" height="12" rx="1"/>
+                      </svg>
+                    ) : (
+                      <svg width="10" height="12" viewBox="0 0 12 14" fill={isPlaying ? '#fff' : col.color.accent}>
+                        <polygon points="1 1 11 7 1 13"/>
+                      </svg>
+                    )}
                   </button>
                   <div className={styles.textGroup}>
-                    <span className={styles.en}>{s.en}</span>
-                    {s.translating ? (
-                      <span className={styles.translating}>Translating…</span>
-                    ) : s.gr ? (
+                    {s.gr ? (
                       <span className={`${styles.gr} serif`}>{s.gr}</span>
+                    ) : s.translating ? (
+                      <span className={styles.translating}>Translating…</span>
                     ) : (
                       <span className={styles.notTranslated}>Tap to translate & narrate</span>
                     )}
+                    <span className={styles.en}>{s.en}</span>
                   </div>
                   <button
                     className={styles.favBtn}

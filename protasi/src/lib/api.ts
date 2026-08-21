@@ -28,7 +28,12 @@ export async function generateSpeech(text: string, voiceId: string): Promise<Blo
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, voiceId }),
   })
-  if (!res.ok) throw new Error(`TTS failed: ${res.statusText}`)
+  if (!res.ok) {
+    // Surface the real reason (ElevenLabs status + message) in the console
+    const detail = await res.text().catch(() => '')
+    console.error('TTS failed:', res.status, detail)
+    throw new Error(`TTS failed: ${res.status} ${detail}`)
+  }
   return res.blob()
 }
 

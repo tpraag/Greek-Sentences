@@ -1,6 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import type { User } from 'firebase/auth'
 import { AppProvider, useApp } from './store'
 import { isFirebaseConfigured } from './lib/firebase'
+import { subscribeAuth } from './lib/auth'
+import Login from './components/Login'
 import Library from './screens/Library'
 import CollectionView from './screens/CollectionView'
 import SentenceDetail from './screens/SentenceDetail'
@@ -9,6 +12,8 @@ import Settings from './screens/Settings'
 import TabBar from './components/TabBar'
 import CompactPlayer from './components/CompactPlayer'
 import ImmersivePlayer from './components/ImmersivePlayer'
+import InstallPrompt from './components/InstallPrompt'
+import OfflineBanner from './components/OfflineBanner'
 
 type Tab = 'library' | 'settings'
 
@@ -22,6 +27,18 @@ function AppInner() {
   const { state } = useApp()
   const [nav, setNav] = useState<Nav>({ tab: 'library', collectionId: null, sentenceId: null })
   const [quickAdd, setQuickAdd] = useState(false)
+
+  // Auth gate: undefined = still checking, null = signed out, User = signed in
+  const [authUser, setAuthUser] = useState<User | null | undefined>(undefined)
+  useEffect(() => {
+    if (!isFirebaseConfigured) { setAuthUser(null); return }
+    return subscribeAuth(u => setAuthUser(u))
+  }, [])
+
+  // While auth state is unknown, render nothing (avoids a login-screen flash on reload)
+  if (isFirebaseConfigured && authUser === undefined) return null
+  // Signed out → show the password screen
+  if (isFirebaseConfigured && !authUser) return <Login />
 
   function goToCollection(id: string) {
     setNav({ tab: 'library', collectionId: id, sentenceId: null })
@@ -60,6 +77,7 @@ function AppInner() {
 
       {quickAdd && (
         <QuickAdd
+          defaultCollectionId={nav.collectionId}
           onClose={() => setQuickAdd(false)}
           onSaved={(colId) => {
             setQuickAdd(false)
@@ -80,6 +98,9 @@ function AppInner() {
       )}
 
       {state.toast && <div className="toast">{state.toast}</div>}
+
+      <InstallPrompt />
+      <OfflineBanner />
 
       {!isFirebaseConfigured && (
         <div style={{

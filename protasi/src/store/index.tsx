@@ -3,10 +3,13 @@ import type {
   Collection, Sentence, Settings, PlaybackState, PlaybackOrder, PlayerView, GreekSpeed,
 } from '../types'
 import * as db from '../lib/db'
-import { subscribeCollections, subscribeSettings, subscribeSentences } from '../lib/db'
+import { subscribeCollections, subscribeSettings, subscribeSentences, subscribeAllSentences } from '../lib/db'
 import { isFirebaseConfigured } from '../lib/firebase'
+import { subscribeAuth } from '../lib/auth'
 import { translateToGreek, generateSpeech } from '../lib/api'
 import { uploadAudio } from '../lib/db'
+import { cacheAudioBlob, getCachedObjectUrl, fetchAndCache } from '../lib/audioCache'
+import { precacheWords } from '../lib/wordCache'
 
 const DEFAULT_SETTINGS: Settings = {
   enVoiceId: '',
@@ -15,6 +18,7 @@ const DEFAULT_SETTINGS: Settings = {
   order: 'en-gr',
   gapSeconds: 3,
   greekSpeed: 1.0,
+  sentenceRepeat: 1,
   defaultPlayerView: 'compact',
   autoTranslate: true,
   autoNarrate: true,
@@ -28,7 +32,9 @@ const DEFAULT_PLAYBACK: PlaybackState = {
   phaseIdx: 0,
   inGap: false,
   paused: false,
-  loop: false,
+  loopList: false,
+  sentenceRepeat: 1,
+  sentencePlayCount: 0,
   view: 'compact',
   collectionId: null,
   gapSeconds: 3,
@@ -50,6 +56,7 @@ type Action =
   | { type: 'UPDATE_COLLECTION'; id: string; data: Partial<Collection> }
   | { type: 'DELETE_COLLECTION'; id: string }
   | { type: 'SET_SENTENCES'; collectionId: string; sentences: Sentence[] }
+  | { type: 'SET_ALL_SENTENCES'; byCollection: Record<string, Sentence[]> }
   | { type: 'ADD_SENTENCE'; sentence: Sentence }
   | { type: 'UPDATE_SENTENCE'; id: string; collectionId: string; data: Partial<Sentence> }
   | { type: 'DELETE_SENTENCE'; id: string; collectionId: string }
@@ -82,8 +89,28 @@ function reducer(state: AppState, action: Action): AppState {
         sentences: rest,
       }
     }
-    case 'SET_SENTENCES':
-      return { ...state, sentences: { ...state.sentences, [action.collectionId]: action.sentences } }
+    case 'SET_SENTENCES': {
+      // Preserve client-only `translating` flag so onSnapshot doesn't clear an in-progress translation
+      const prev = state.sentences[action.collectionId] ?? []
+      const merged = action.sentences.map(s => {
+        const p = prev.find(e => e.id === s.id)
+        return p?.translating ? { ...s, translating: true } : s
+      })
+      return { ...state, sentences: { ...state.sentences, [action.collectionId]: merged } }
+    }
+    case 'SET_ALL_SENTENCES': {
+      // Replace the whole map but preserve client-only `translating` flags so an
+      // in-progress translation isn't cleared by the snapshot.
+      const next: Record<string, Sentence[]> = {}
+      for (const [colId, list] of Object.entries(action.byCollection)) {
+        const prev = state.sentences[colId] ?? []
+        next[colId] = list.map(s => {
+          const p = prev.find(e => e.id === s.id)
+          return p?.translating ? { ...s, translating: true } : s
+        })
+      }
+      return { ...state, sentences: next }
+    }
     case 'ADD_SENTENCE': {
       const existing = state.sentences[action.sentence.collectionId] ?? []
       if (existing.some(s => s.id === action.sentence.id)) return state
@@ -142,11 +169,13 @@ interface AppContextValue {
   generateAudio: (id: string, collectionId: string, lang: 'en' | 'gr') => Promise<string>
   saveSettings: (s: Settings) => Promise<void>
   showToast: (msg: string, ms?: number) => void
-  startPlayback: (collectionId: string, queue: string[], opts: { order: PlaybackOrder; gapSeconds: number; view: PlayerView; greekSpeed: GreekSpeed }) => void
+  startPlayback: (collectionId: string, queue: string[], opts: { order: PlaybackOrder; gapSeconds: number; view: PlayerView; greekSpeed: GreekSpeed; loopList?: boolean; sentenceRepeat?: number }) => void
   stopPlayback: () => void
   pauseResume: () => void
   nextSentence: () => void
   prevSentence: () => void
+  setGreekSpeed: (speed: GreekSpeed) => void
+  setPlaybackOrder: (order: PlaybackOrder) => void
 }
 
 const AppContext = createContext<AppContextValue>(null!)
@@ -162,7 +191,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   })
 
   const audioRef = useRef<HTMLAudioElement>(new Audio())
+  // Tracks the current Object URL so we can revoke it before creating the next one
+  const objectUrlRef = useRef<string | null>(null)
   const gapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // The action to run after the current gap finishes (plays the next audio nugget).
+  // Kept in a ref so pause/resume can re-arm the same gap regardless of what comes next.
+  const nextStepRef = useRef<(() => void) | null>(null)
   const playbackRef = useRef<PlaybackState>(DEFAULT_PLAYBACK)
   playbackRef.current = state.playback
 
@@ -172,16 +206,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
-    const unsubCols = subscribeCollections(collections => {
-      dispatch({ type: 'SET_COLLECTIONS', collections })
-      dispatch({ type: 'SET_LOADING', loading: false })
+    let dataUnsubs: Array<() => void> = []
+
+    // Subscribe to data only while signed in; tear down on sign-out. This also
+    // ensures the auth token is present so locked-down rules don't reject reads.
+    const unsubAuth = subscribeAuth(user => {
+      dataUnsubs.forEach(u => u())
+      dataUnsubs = []
+
+      if (!user) {
+        dispatch({ type: 'SET_COLLECTIONS', collections: [] })
+        dispatch({ type: 'SET_ALL_SENTENCES', byCollection: {} })
+        dispatch({ type: 'SET_LOADING', loading: false })
+        return
+      }
+
+      dataUnsubs.push(subscribeCollections(collections => {
+        dispatch({ type: 'SET_COLLECTIONS', collections })
+        dispatch({ type: 'SET_LOADING', loading: false })
+      }))
+
+      // Keep every collection's sentences (and thus Library counts) in sync globally,
+      // so counts are correct without having to open each collection first.
+      dataUnsubs.push(subscribeAllSentences(byCollection => {
+        dispatch({ type: 'SET_ALL_SENTENCES', byCollection })
+      }))
+
+      dataUnsubs.push(subscribeSettings(settings => {
+        // Merge over defaults so fields missing from an older settings doc
+        // (e.g. autoTranslate / autoNarrate) don't read back as `undefined`.
+        if (settings) dispatch({ type: 'SET_SETTINGS', settings: { ...DEFAULT_SETTINGS, ...settings } })
+      }))
     })
 
-    const unsubSettings = subscribeSettings(settings => {
-      if (settings) dispatch({ type: 'SET_SETTINGS', settings })
-    })
-
-    return () => { unsubCols(); unsubSettings() }
+    return () => { unsubAuth(); dataUnsubs.forEach(u => u()) }
   }, [])
 
   const showToast = useCallback((msg: string, ms = 3000) => {
@@ -233,6 +291,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         await db.updateSentence(sentence.id, { gr, translating: false })
         dispatch({ type: 'UPDATE_SENTENCE', id: sentence.id, collectionId: sentence.collectionId, data: { gr, translating: false } })
 
+        // Background: pre-translate each word so taps are instant & work offline later
+        precacheWords(gr)
+
         if (autoNarrate && state.settings.enVoiceId && state.settings.grVoiceId) {
           const [enBlob, grBlob] = await Promise.all([
             generateSpeech(sentence.en, state.settings.enVoiceId),
@@ -264,6 +325,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteSentence = useCallback(async (id: string, collectionId: string) => {
     await db.deleteSentence(id)
     dispatch({ type: 'DELETE_SENTENCE', id, collectionId })
+    // Best-effort cleanup of the audio blobs in Storage (ignore if they don't exist)
+    db.deleteAudio(id, 'en').catch(() => {})
+    db.deleteAudio(id, 'gr').catch(() => {})
   }, [])
 
   const translateSentence = useCallback(async (id: string, collectionId: string) => {
@@ -275,6 +339,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const gr = await translateToGreek(sentence.en)
       await db.updateSentence(id, { gr, translating: false })
       dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data: { gr, translating: false } })
+      precacheWords(gr) // background pre-translate each word for offline taps
     } catch {
       dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data: { translating: false } })
       showToast('Translation failed')
@@ -291,6 +356,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!voiceId) throw new Error('No voice configured')
     const blob = await generateSpeech(text, voiceId)
     const url = await uploadAudio(id, lang, blob)
+    // Seed IndexedDB cache immediately — we already have the blob, no need to re-fetch later
+    cacheAudioBlob(url, blob).catch(() => {})
     const field = lang === 'en' ? 'enAudioUrl' : 'grAudioUrl'
     await db.updateSentence(id, { [field]: url })
     dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data: { [field]: url } })
@@ -323,60 +390,116 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let sentence = getSentenceById(sentenceId)
     if (!sentence) return
 
-    let url = lang === 'en' ? sentence.enAudioUrl : sentence.grAudioUrl
-    if (!url) {
+    let storageUrl = lang === 'en' ? sentence.enAudioUrl : sentence.grAudioUrl
+    if (!storageUrl) {
       try {
-        url = await generateAudio(sentenceId, collectionId, lang)
+        storageUrl = await generateAudio(sentenceId, collectionId, lang)
       } catch {
-        // skip this phase
         advancePhase()
         return
       }
     }
 
+    // Revoke the previous Object URL to free memory
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current)
+      objectUrlRef.current = null
+    }
+
+    // Prefer a cached blob from IndexedDB (works offline, bypasses the SW and iOS Safari's
+    // 206 Partial Content requirement). If it isn't cached yet, fall back to the direct
+    // Storage URL so online playback always works, and warm the cache in the background.
+    let playUrl = storageUrl
+    const cachedUrl = await getCachedObjectUrl(storageUrl)
+    if (cachedUrl) {
+      playUrl = cachedUrl
+      objectUrlRef.current = cachedUrl
+    } else {
+      fetchAndCache(storageUrl) // background; needs CORS on the bucket
+    }
+
+    // Update lock-screen / Now Playing metadata
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: sentence.en,
+        artist: lang === 'gr' ? 'Ελληνικά' : 'English',
+        album: 'Protasi',
+      })
+    }
+
     const audio = audioRef.current
-    audio.src = url
+    audio.src = playUrl
     audio.playbackRate = lang === 'gr' ? pb.greekSpeed : 1.0
     audio.onended = () => advancePhase()
     audio.play().catch(() => advancePhase())
   }, [generateAudio])
+
+  // Run `fn` after the configured gap. The gap is the standard pause between every
+  // audio nugget — between EN and GR of the same sentence, between repeats, and
+  // between sentences. `fn` is stashed so pause/resume can re-arm the same step.
+  const scheduleAfterGap = useCallback((fn: () => void, gapMs: number) => {
+    if (gapMs <= 0) { fn(); return }
+    nextStepRef.current = fn
+    dispatch({ type: 'SET_PLAYBACK', playback: { inGap: true } })
+    gapTimerRef.current = setTimeout(() => {
+      nextStepRef.current = null
+      fn()
+    }, gapMs)
+  }, [])
 
   const advancePhase = useCallback(() => {
     const pb = playbackRef.current
     if (!pb.active || pb.paused) return
     const phases = getPhasesForOrder(pb.order)
     const nextPhaseIdx = pb.phaseIdx + 1
+    const gapMs = pb.gapSeconds * 1000
 
     if (nextPhaseIdx < phases.length) {
-      // Next phase of same sentence
-      dispatch({ type: 'SET_PLAYBACK', playback: { phaseIdx: nextPhaseIdx } })
-      const sentenceId = pb.queue[pb.qpos]
-      playPhase(sentenceId, phases[nextPhaseIdx], pb.collectionId!)
-    } else if (pb.loop) {
-      // Loop this sentence
-      dispatch({ type: 'SET_PLAYBACK', playback: { phaseIdx: 0 } })
-      const sentenceId = pb.queue[pb.qpos]
-      playPhase(sentenceId, phases[0], pb.collectionId!)
-    } else {
-      // Move to next sentence after gap
-      const nextPos = pb.qpos + 1
-      if (nextPos >= pb.queue.length) {
-        dispatch({ type: 'STOP_PLAYBACK' })
-        return
-      }
-      dispatch({ type: 'SET_PLAYBACK', playback: { inGap: true } })
-      gapTimerRef.current = setTimeout(() => {
-        dispatch({ type: 'SET_PLAYBACK', playback: { qpos: nextPos, phaseIdx: 0, inGap: false } })
-        const sentenceId = playbackRef.current.queue[nextPos]
-        playPhase(sentenceId, phases[0], playbackRef.current.collectionId!)
-      }, pb.gapSeconds * 1000)
+      // Gap, then next phase (e.g. EN → GR) of the same sentence
+      scheduleAfterGap(() => {
+        dispatch({ type: 'SET_PLAYBACK', playback: { phaseIdx: nextPhaseIdx, inGap: false } })
+        const p = playbackRef.current
+        playPhase(p.queue[p.qpos], phases[nextPhaseIdx], p.collectionId!)
+      }, gapMs)
+      return
     }
-  }, [playPhase])
+
+    // All phases done — check sentence repeat
+    const shouldRepeat = pb.sentenceRepeat === 0 || pb.sentencePlayCount + 1 < pb.sentenceRepeat
+    if (shouldRepeat) {
+      scheduleAfterGap(() => {
+        const p = playbackRef.current
+        dispatch({ type: 'SET_PLAYBACK', playback: { phaseIdx: 0, sentencePlayCount: p.sentencePlayCount + 1, inGap: false } })
+        playPhase(p.queue[p.qpos], phases[0], p.collectionId!)
+      }, gapMs)
+      return
+    }
+
+    // Move to next sentence
+    const nextPos = pb.qpos + 1
+    if (nextPos >= pb.queue.length) {
+      if (pb.loopList) {
+        scheduleAfterGap(() => {
+          dispatch({ type: 'SET_PLAYBACK', playback: { qpos: 0, phaseIdx: 0, sentencePlayCount: 0, inGap: false } })
+          const p = playbackRef.current
+          playPhase(p.queue[0], phases[0], p.collectionId!)
+        }, gapMs)
+      } else {
+        dispatch({ type: 'STOP_PLAYBACK' })
+      }
+      return
+    }
+    scheduleAfterGap(() => {
+      dispatch({ type: 'SET_PLAYBACK', playback: { qpos: nextPos, phaseIdx: 0, sentencePlayCount: 0, inGap: false } })
+      const p = playbackRef.current
+      playPhase(p.queue[nextPos], phases[0], p.collectionId!)
+    }, gapMs)
+  }, [playPhase, scheduleAfterGap])
 
   const startPlayback = useCallback((
     collectionId: string,
     queue: string[],
-    opts: { order: PlaybackOrder; gapSeconds: number; view: PlayerView; greekSpeed: GreekSpeed }
+    opts: { order: PlaybackOrder; gapSeconds: number; view: PlayerView; greekSpeed: GreekSpeed; loopList?: boolean; sentenceRepeat?: number }
   ) => {
     audioRef.current.pause()
     if (gapTimerRef.current) clearTimeout(gapTimerRef.current)
@@ -388,7 +511,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       phaseIdx: 0,
       inGap: false,
       paused: false,
-      loop: false,
+      loopList: opts.loopList ?? false,
+      sentenceRepeat: opts.sentenceRepeat ?? 1,
+      sentencePlayCount: 0,
       view: opts.view,
       collectionId,
       gapSeconds: opts.gapSeconds,
@@ -396,6 +521,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     dispatch({ type: 'SET_PLAYBACK', playback: pb })
     playbackRef.current = pb  // sync ref immediately so playPhase reads correct greekSpeed
+
+    // Register lock-screen media session controls
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.setActionHandler('play', () => {
+        audioRef.current.play()
+        dispatch({ type: 'SET_PLAYBACK', playback: { paused: false } })
+      })
+      navigator.mediaSession.setActionHandler('pause', () => {
+        audioRef.current.pause()
+        dispatch({ type: 'SET_PLAYBACK', playback: { paused: true } })
+      })
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        const p = playbackRef.current
+        audioRef.current.pause()
+        if (gapTimerRef.current) clearTimeout(gapTimerRef.current)
+        const prevPos = Math.max(p.qpos - 1, 0)
+        const ph = getPhasesForOrder(p.order)
+        dispatch({ type: 'SET_PLAYBACK', playback: { qpos: prevPos, phaseIdx: 0, inGap: false } })
+        playPhase(p.queue[prevPos], ph[0], p.collectionId!)
+      })
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        const p = playbackRef.current
+        audioRef.current.pause()
+        if (gapTimerRef.current) clearTimeout(gapTimerRef.current)
+        const nextPos = Math.min(p.qpos + 1, p.queue.length - 1)
+        const ph = getPhasesForOrder(p.order)
+        dispatch({ type: 'SET_PLAYBACK', playback: { qpos: nextPos, phaseIdx: 0, inGap: false } })
+        playPhase(p.queue[nextPos], ph[0], p.collectionId!)
+      })
+    }
+
     const phases = getPhasesForOrder(opts.order)
     playPhase(queue[0], phases[0], collectionId)
   }, [playPhase])
@@ -409,13 +565,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const pauseResume = useCallback(() => {
     const pb = playbackRef.current
     if (pb.paused) {
-      if (pb.inGap) {
-        // resume gap timer
+      if (pb.inGap && nextStepRef.current) {
+        // Resume by re-arming the pending gap step (next nugget/sentence)
+        const fn = nextStepRef.current
         gapTimerRef.current = setTimeout(() => {
-          const phases = getPhasesForOrder(playbackRef.current.order)
-          const nextPos = playbackRef.current.qpos + 1
-          dispatch({ type: 'SET_PLAYBACK', playback: { qpos: nextPos, phaseIdx: 0, inGap: false, paused: false } })
-          playPhase(playbackRef.current.queue[nextPos], phases[0], playbackRef.current.collectionId!)
+          nextStepRef.current = null
+          fn()
         }, pb.gapSeconds * 1000)
       } else {
         audioRef.current.play()
@@ -426,7 +581,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (gapTimerRef.current) clearTimeout(gapTimerRef.current)
       dispatch({ type: 'SET_PLAYBACK', playback: { paused: true } })
     }
-  }, [playPhase])
+  }, [])
 
   const nextSentence = useCallback(() => {
     const pb = playbackRef.current
@@ -448,6 +603,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     playPhase(pb.queue[prevPos], phases[0], pb.collectionId!)
   }, [playPhase])
 
+  // Change Greek speed during playback — applies to the current audio immediately if Greek is playing
+  const setGreekSpeed = useCallback((speed: GreekSpeed) => {
+    const pb = playbackRef.current
+    dispatch({ type: 'SET_PLAYBACK', playback: { greekSpeed: speed } })
+    const phases = getPhasesForOrder(pb.order)
+    if (!pb.inGap && phases[pb.phaseIdx] === 'gr') {
+      audioRef.current.playbackRate = speed
+    }
+  }, [])
+
+  // Change playback order (EN / GR / EN→GR / GR→EN) mid-playback; takes effect from the next nugget
+  const setPlaybackOrder = useCallback((order: PlaybackOrder) => {
+    dispatch({ type: 'SET_PLAYBACK', playback: { order } })
+  }, [])
+
   return (
     <AppContext.Provider value={{
       state, dispatch,
@@ -457,6 +627,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       translateSentence, generateAudio,
       saveSettings, showToast,
       startPlayback, stopPlayback, pauseResume, nextSentence, prevSentence,
+      setGreekSpeed, setPlaybackOrder,
     }}>
       {children}
     </AppContext.Provider>

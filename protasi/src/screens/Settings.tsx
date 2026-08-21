@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../store'
+import { signOutUser } from '../lib/auth'
 import type { Settings as SettingsType, PlaybackOrder, PlayerView, GreekSpeed, SavedVoice } from '../types'
 import styles from './Settings.module.css'
 
@@ -173,6 +174,17 @@ export default function Settings() {
             </div>
             <div className="hairline" />
             <div className={styles.row}>
+              <span className={styles.rowLabel}>Repeat each sentence</span>
+              <div className="segmented">
+                {[1, 2, 3, 0].map(n => (
+                  <button key={n} className={(form.sentenceRepeat ?? 1) === n ? 'active' : ''} onClick={() => set('sentenceRepeat', n)}>
+                    {n === 0 ? '∞' : `${n}×`}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="hairline" />
+            <div className={styles.row}>
               <span className={styles.rowLabel}>Player look</span>
               <select className={styles.select} value={form.defaultPlayerView} onChange={e => set('defaultPlayerView', e.target.value as PlayerView)}>
                 <option value="compact">Compact bar</option>
@@ -200,6 +212,14 @@ export default function Settings() {
 
         <button className="btn-accent" onClick={handleSave}>
           {saved ? 'Saved ✓' : 'Save settings'}
+        </button>
+
+        <button
+          className="btn-outline"
+          style={{ marginTop: 12, color: 'var(--destructive)', borderColor: 'var(--destructive)' }}
+          onClick={() => { if (confirm('Sign out of this device? You’ll need your password to get back in.')) signOutUser() }}
+        >
+          Sign out
         </button>
       </div>
     </div>

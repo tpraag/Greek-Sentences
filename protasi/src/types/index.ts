@@ -110,6 +110,7 @@ export interface Settings {
   order: PlaybackOrder
   gapSeconds: number
   greekSpeed: GreekSpeed
+  sentenceRepeat: number     // default times each sentence repeats (0 = ∞, 1 = once)
   defaultPlayerView: PlayerView
   autoTranslate: boolean
   autoNarrate: boolean
@@ -123,7 +124,9 @@ export interface PlaybackState {
   phaseIdx: number
   inGap: boolean
   paused: boolean
-  loop: boolean
+  loopList: boolean          // repeat the whole queue when it ends
+  sentenceRepeat: number     // 0 = ∞, 1 = once, 2 = twice, 3 = three times
+  sentencePlayCount: number  // how many full plays of current sentence so far
   view: PlayerView
   collectionId: string | null
   gapSeconds: number

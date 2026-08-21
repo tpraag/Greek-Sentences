@@ -6,6 +6,7 @@ import {
   type Firestore,
 } from 'firebase/firestore'
 import { getStorage, type FirebaseStorage } from 'firebase/storage'
+import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged, type Auth } from 'firebase/auth'
 
 const configured = !!(
   import.meta.env.VITE_FIREBASE_API_KEY &&
@@ -15,6 +16,12 @@ const configured = !!(
 let app: FirebaseApp | null = null
 let _db: Firestore | null = null
 let _storage: FirebaseStorage | null = null
+let _auth: Auth | null = null
+
+// Resolves once Firebase auth has determined the initial signed-in state (user or null).
+// Storage/Firestore writes await this so the auth token is attached before the request.
+let resolveReady: () => void
+const authReady = new Promise<void>(res => { resolveReady = res })
 
 if (configured) {
   app = initializeApp({
@@ -32,8 +39,22 @@ if (configured) {
     }),
   })
   _storage = getStorage(app)
+  _auth = getAuth(app)
+
+  // Persist the session on the device so the user only signs in once per device.
+  setPersistence(_auth, browserLocalPersistence).catch(() => {})
+
+  // Resolve readiness once the initial auth state is known (signed in or not).
+  const unsub = onAuthStateChanged(_auth, () => {
+    resolveReady()
+    unsub()
+  })
+} else {
+  resolveReady!()
 }
 
 export const db = _db as Firestore
 export const storage = _storage as FirebaseStorage
+export const auth = _auth as Auth
 export const isFirebaseConfigured = configured
+export const firebaseAuthReady = authReady

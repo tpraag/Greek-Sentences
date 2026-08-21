@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useApp } from '../store'
-import { translateGreekWordToEnglish } from '../lib/api'
+import { translateWordCached, normalizeWord } from '../lib/wordCache'
 import type { GreekSpeed } from '../types'
 import styles from './SentenceDetail.module.css'
 
@@ -11,13 +11,17 @@ interface Props {
 }
 
 export default function SentenceDetail({ sentenceId, collectionId, onBack }: Props) {
-  const { state, updateSentence, translateSentence, generateAudio, startPlayback } = useApp()
+  const { state, updateSentence, translateSentence, generateAudio, deleteSentence, startPlayback, showToast } = useApp()
   const [speed, setSpeed] = useState<GreekSpeed>(state.settings.greekSpeed)
   const [loop, setLoop] = useState(false)
   const [_playingLang, setPlayingLang] = useState<'en' | 'gr' | null>(null)
   const [wordCache, setWordCache] = useState<Record<string, string>>({})
   const [popover, setPopover] = useState<{ word: string; translation: string; loading: boolean } | null>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
+  const [editMode, setEditMode] = useState(false)
+  const [editEn, setEditEn] = useState('')
+  const [editGr, setEditGr] = useState('')
+  const [saving, setSaving] = useState(false)
 
   const sentences = state.sentences[collectionId] ?? []
   const idx = sentences.findIndex(s => s.id === sentenceId)
@@ -43,7 +47,7 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack }: Pro
   }
 
   async function handleWordTap(word: string) {
-    const clean = word.replace(/[^α-ωΑ-Ωά-ώΆ-Ώa-zA-Z]/g, '').toLowerCase()
+    const clean = normalizeWord(word)
     if (!clean) return
     if (wordCache[clean]) {
       setPopover({ word: clean, translation: wordCache[clean], loading: false })
@@ -51,11 +55,50 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack }: Pro
     }
     setPopover({ word: clean, translation: '', loading: true })
     try {
-      const translation = await translateGreekWordToEnglish(clean)
+      const translation = await translateWordCached(clean)
       setWordCache(c => ({ ...c, [clean]: translation }))
       setPopover({ word: clean, translation, loading: false })
     } catch {
       setPopover({ word: clean, translation: 'Could not translate', loading: false })
+    }
+  }
+
+  function openEdit() {
+    setEditEn(sentence.en)
+    setEditGr(sentence.gr ?? '')
+    setEditMode(true)
+  }
+
+  async function handleEditSave() {
+    setSaving(true)
+    const enChanged = editEn.trim() !== sentence.en
+    const grChanged = editGr.trim() !== (sentence.gr ?? '')
+    try {
+      if (enChanged) {
+        const retranslate = confirm('You changed the English text. Re-translate to Greek?')
+        if (retranslate) {
+          await updateSentence(sentenceId, collectionId, { en: editEn.trim(), gr: null, enAudioUrl: null, grAudioUrl: null })
+          await translateSentence(sentenceId, collectionId)
+          // regenerate both audio after translation completes
+          if (state.settings.enVoiceId) await generateAudio(sentenceId, collectionId, 'en')
+          const updated = (state.sentences[collectionId] ?? []).find(s => s.id === sentenceId)
+          if (updated?.gr && state.settings.grVoiceId) await generateAudio(sentenceId, collectionId, 'gr')
+        } else {
+          // just save the new English text, regenerate EN audio
+          await updateSentence(sentenceId, collectionId, { en: editEn.trim(), enAudioUrl: null })
+          if (state.settings.enVoiceId) await generateAudio(sentenceId, collectionId, 'en')
+        }
+      } else if (grChanged) {
+        // Only Greek changed — save and regenerate GR audio
+        await updateSentence(sentenceId, collectionId, { gr: editGr.trim(), grAudioUrl: null })
+        if (state.settings.grVoiceId) await generateAudio(sentenceId, collectionId, 'gr')
+      }
+      showToast('Saved')
+      setEditMode(false)
+    } catch {
+      showToast('Save failed')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -70,28 +113,70 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack }: Pro
     if (sentence.gr) await generateAudio(sentenceId, collectionId, 'gr')
   }
 
+  async function handleDelete() {
+    if (!confirm('Delete this sentence permanently?')) return
+    await deleteSentence(sentenceId, collectionId)
+    showToast('Sentence deleted')
+    onBack()
+  }
+
   return (
     <div className={styles.screen}>
       <div className={styles.header}>
-        <button className={styles.back} onClick={onBack}>
-          <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="7 1 1 7 7 13"/>
-          </svg>
-          {col?.name}
-        </button>
-        <button
-          className={styles.favBtn}
-          onClick={() => updateSentence(sentenceId, collectionId, { fav: !sentence.fav })}
-        >
-          <span style={{ color: sentence.fav ? 'var(--fav)' : 'var(--ink-placeholder)', fontSize: 22 }}>
-            {sentence.fav ? '★' : '☆'}
-          </span>
-        </button>
+        {editMode ? (
+          <>
+            <button className={styles.back} onClick={() => setEditMode(false)}>Cancel</button>
+            <span style={{ fontWeight: 700, fontSize: 15 }}>Edit sentence</span>
+            <button className={styles.back} onClick={handleEditSave} disabled={saving}>
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </>
+        ) : (
+          <>
+            <button className={styles.back} onClick={onBack}>
+              <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="7 1 1 7 7 13"/>
+              </svg>
+              {col?.name}
+            </button>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button className={styles.back} onClick={openEdit} style={{ fontSize: 13, color: 'var(--ink-soft)' }}>Edit</button>
+              <button
+                className={styles.favBtn}
+                onClick={() => updateSentence(sentenceId, collectionId, { fav: !sentence.fav })}
+              >
+                <span style={{ color: sentence.fav ? 'var(--fav)' : 'var(--ink-placeholder)', fontSize: 22 }}>
+                  {sentence.fav ? '★' : '☆'}
+                </span>
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <div className={`screen-scroll ${state.playback.active ? 'with-player' : ''}`}>
         <div className={styles.body}>
           <div className={styles.counter}>English · {idx + 1} of {sentences.length}</div>
+          {editMode ? (
+            <>
+              <textarea
+                className={styles.editTextarea}
+                value={editEn}
+                onChange={e => setEditEn(e.target.value)}
+                rows={4}
+              />
+              <div className="hairline" style={{ margin: '20px 0' }} />
+              <div className={styles.counter}>Ελληνικά</div>
+              <textarea
+                className={`${styles.editTextarea} serif`}
+                value={editGr}
+                onChange={e => setEditGr(e.target.value)}
+                rows={4}
+                placeholder="Greek translation…"
+              />
+            </>
+          ) : (
+          <>
           <p className={styles.en}>{sentence.en}</p>
 
           <div className="hairline" style={{ margin: '20px 0' }} />
@@ -184,6 +269,11 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack }: Pro
             <button className="btn-outline" onClick={handleRetranslate}>Re-translate</button>
             <button className="btn-outline" onClick={handleRegenAudio}>Regenerate audio</button>
           </div>
+
+          {/* Delete sentence */}
+          <button className={styles.deleteBtn} onClick={handleDelete}>Delete sentence</button>
+          </>
+          )}
         </div>
       </div>
     </div>

@@ -1,3 +1,52 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  animation: overlayIn .22s ease;
+}
+.overlayClosing {
+  animation: overlayOut .22s ease forwards;
+}
+
+.sheet {
+  background: var(--surface);
+  border-radius: 26px 26px 0 0;
+  width: 100%;
+  padding: 20px 24px calc(24px + var(--safe-bottom));
+  box-shadow: 0 -10px 40px rgba(0,0,0,.2);
+  animation: sheetIn .26s cubic-bezier(.32,.72,0,1);
+  transition: transform .22s cubic-bezier(.32,.72,0,1);
+  max-height: 90dvh;
+  overflow-y: auto;
+}
+.sheetClosing {
+  transform: translateY(100%);
+}
+
+/* Larger touch target around the drag handle for swipe-to-dismiss */
+.handleZone {
+  margin: -20px -24px 0;
+  padding: 12px 24px 4px;
+  cursor: grab;
+  touch-action: none;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0 }
+  to { opacity: 1 }
+}
+@keyframes overlayOut {
+  from { opacity: 1 }
+  to { opacity: 0 }
+}
+@keyframes sheetIn {
+  from { transform: translateY(100%) }
+  to { transform: translateY(0) }
+}
+
 .title {
   font-size: 20px;
   font-weight: 700;
@@ -50,4 +99,16 @@
   font-weight: 600;
   min-width: 30px;
   text-align: center;
+}
+
+.loopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.loopLabel {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
 }

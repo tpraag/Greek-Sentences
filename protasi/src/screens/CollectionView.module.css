@@ -162,6 +162,11 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: background .15s;
+}
+.playBtnActive {
+  background: var(--accent);
+  box-shadow: 0 2px 8px rgba(91,138,125,.4);
 }
 
 .textGroup {
@@ -172,8 +177,9 @@
   gap: 2px;
 }
 
-.en {
-  font-size: 15px;
+/* Greek is the primary text (shown first, larger); English is the secondary line. */
+.gr {
+  font-size: 16px;
   font-weight: 500;
   color: var(--ink);
   white-space: nowrap;
@@ -181,9 +187,9 @@
   text-overflow: ellipsis;
 }
 
-.gr {
-  font-size: 15px;
-  color: var(--ink-soft);
+.en {
+  font-size: 13px;
+  color: var(--ink-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

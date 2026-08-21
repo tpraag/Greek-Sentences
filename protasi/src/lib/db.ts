@@ -12,7 +12,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
-import { db, storage } from './firebase'
+import { db, storage, firebaseAuthReady } from './firebase'
 import type { Collection, Sentence, Settings } from '../types'
 
 // Real-time listener — calls onData immediately from cache, then again when server responds
@@ -32,7 +32,7 @@ export function subscribeSentences(collectionId: string, onData: (sentences: Sen
   const q = query(
     collection(db, 'sentences'),
     where('collectionId', '==', collectionId),
-    orderBy('createdAt', 'asc')
+    orderBy('createdAt', 'desc')
   )
   return onSnapshot(q, snap => {
     onData(snap.docs.map(d => ({ id: d.id, ...d.data() } as Sentence)))
@@ -42,6 +42,24 @@ export function subscribeSentences(collectionId: string, onData: (sentences: Sen
       query(collection(db, 'sentences'), where('collectionId', '==', collectionId)),
       snap => onData(snap.docs.map(d => ({ id: d.id, ...d.data() } as Sentence)))
     )
+  })
+}
+
+// Listen to every sentence at once, grouped by collectionId — powers Library counts
+// without having to open each collection first.
+export function subscribeAllSentences(onData: (byCollection: Record<string, Sentence[]>) => void): Unsubscribe {
+  const group = (docs: Array<{ id: string; data: () => any }>) => {
+    const grouped: Record<string, Sentence[]> = {}
+    docs.forEach(d => {
+      const s = { id: d.id, ...d.data() } as Sentence
+      ;(grouped[s.collectionId] ??= []).push(s)
+    })
+    onData(grouped)
+  }
+  const q = query(collection(db, 'sentences'), orderBy('createdAt', 'desc'))
+  return onSnapshot(q, snap => group(snap.docs), () => {
+    // composite index not ready — fallback without orderBy
+    onSnapshot(collection(db, 'sentences'), snap => group(snap.docs))
   })
 }
 
@@ -83,6 +101,7 @@ export async function deleteSentence(id: string): Promise<void> {
 }
 
 export async function uploadAudio(sentenceId: string, lang: 'en' | 'gr', blob: Blob): Promise<string> {
+  await firebaseAuthReady // ensure anonymous auth is ready so Storage rules allow the write
   const storageRef = ref(storage, `audio/${sentenceId}/${lang}.mp3`)
   await uploadBytes(storageRef, blob)
   return getDownloadURL(storageRef)

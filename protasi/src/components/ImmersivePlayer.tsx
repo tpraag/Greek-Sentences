@@ -1,9 +1,43 @@
+import { useState } from 'react'
 import { useApp } from '../store'
+import { translateWordCached, normalizeWord } from '../lib/wordCache'
+import type { PlaybackOrder, GreekSpeed } from '../types'
 import styles from './ImmersivePlayer.module.css'
 
+const ORDER_OPTIONS: { value: PlaybackOrder; label: string }[] = [
+  { value: 'en', label: 'EN' },
+  { value: 'gr', label: 'GR' },
+  { value: 'en-gr', label: 'EN→GR' },
+  { value: 'gr-en', label: 'GR→EN' },
+]
+const SPEED_OPTIONS: GreekSpeed[] = [0.7, 0.85, 1.0]
+const MAX_DOTS = 12
+
 export default function ImmersivePlayer() {
-  const { state, pauseResume, nextSentence, prevSentence, stopPlayback } = useApp()
+  const { state, dispatch, pauseResume, nextSentence, prevSentence, stopPlayback, setGreekSpeed, setPlaybackOrder } = useApp()
   const { playback } = state
+  const [wordCache, setWordCache] = useState<Record<string, string>>({})
+  const [popover, setPopover] = useState<{ word: string; translation: string; loading: boolean } | null>(null)
+
+  async function handleWordTap(word: string) {
+    const clean = normalizeWord(word)
+    if (!clean) return
+    if (wordCache[clean]) {
+      setPopover({ word: clean, translation: wordCache[clean], loading: false })
+      return
+    }
+    setPopover({ word: clean, translation: '', loading: true })
+    try {
+      const translation = await translateWordCached(clean)
+      setWordCache(c => ({ ...c, [clean]: translation }))
+      setPopover({ word: clean, translation, loading: false })
+    } catch {
+      setPopover({ word: clean, translation: 'Could not translate', loading: false })
+    }
+  }
+
+  const REPEAT_OPTIONS = [1, 2, 3, 0] // 0 = ∞
+  const repeatLabel = (n: number) => n === 0 ? '∞' : `${n}×`
 
   if (!playback.active || playback.view !== 'immersive') return null
 
@@ -13,7 +47,6 @@ export default function ImmersivePlayer() {
 
   const phases = playback.order === 'en' ? ['en'] : playback.order === 'gr' ? ['gr'] : playback.order === 'en-gr' ? ['en','gr'] : ['gr','en']
   const langLabel = playback.inGap ? 'Pausing' : (phases[playback.phaseIdx] === 'en' ? 'English' : 'Ελληνικά')
-  const showEn = !playback.inGap && phases[playback.phaseIdx] === 'en'
 
   return (
     <div className={styles.screen}>
@@ -25,35 +58,103 @@ export default function ImmersivePlayer() {
 
       <div className={styles.colName}>{col?.name}</div>
 
-      {/* Progress dots */}
+      {/* Progress dots — windowed so long collections don't overflow. Edge dots
+          shrink to signal there are more sentences beyond the visible window. */}
       <div className={styles.dots}>
-        {playback.queue.map((_, i) => (
-          <div
-            key={i}
-            className={`${styles.dot} ${i <= playback.qpos ? styles.dotFilled : ''}`}
-          />
-        ))}
+        {(() => {
+          const total = playback.queue.length
+          let start = 0
+          if (total > MAX_DOTS) {
+            start = Math.max(0, Math.min(playback.qpos - Math.floor(MAX_DOTS / 2), total - MAX_DOTS))
+          }
+          const end = Math.min(total, start + MAX_DOTS)
+          const items = []
+          for (let i = start; i < end; i++) {
+            const moreBefore = i === start && start > 0
+            const moreAfter = i === end - 1 && end < total
+            items.push(
+              <div
+                key={i}
+                className={`${styles.dot} ${i <= playback.qpos ? styles.dotFilled : ''} ${moreBefore || moreAfter ? styles.dotEdge : ''}`}
+              />
+            )
+          }
+          return items
+        })()}
       </div>
 
-      <div className={styles.langLabel}>{langLabel} · now playing</div>
+      <div className={styles.langLabel}>{langLabel} · {playback.qpos + 1} of {playback.queue.length}</div>
 
       {current && (
-        <div className={styles.textArea}>
-          {showEn ? (
-            <p className={`${styles.primary} serif`}>{current.en}</p>
-          ) : current.gr ? (
-            <p className={`${styles.primary} serif`}>{current.gr}</p>
+        <div className={styles.textArea} onClick={() => setPopover(null)}>
+          {/* Greek is always the primary text, on top — tap any word for its translation */}
+          {current.gr ? (
+            <p className={`${styles.primary} serif`} style={{ position: 'relative' }}>
+              {current.gr.split(/(\s+)/).map((token, i) =>
+                /\s+/.test(token) ? token :
+                <span
+                  key={i}
+                  className={styles.grWord}
+                  onClick={e => { e.stopPropagation(); handleWordTap(token) }}
+                >{token}</span>
+              )}
+            </p>
           ) : (
             <p className={styles.primary}>{current.en}</p>
           )}
-          {current.gr && !showEn && (
+          {current.gr && (
             <p className={styles.secondary}>{current.en}</p>
           )}
-          {showEn && current.gr && (
-            <p className={`${styles.secondary} serif`}>{current.gr}</p>
+          {popover && (
+            <div className={styles.wordPopover}>
+              <span className={styles.popoverWord}>{popover.word}</span>
+              <span className={styles.popoverArrow}>→</span>
+              <span className={styles.popoverTranslation}>{popover.loading ? '…' : popover.translation}</span>
+              <button className={styles.popoverClose} onClick={() => setPopover(null)}>✕</button>
+            </div>
           )}
         </div>
       )}
+
+      {/* Order control */}
+      <div className={styles.ctrlRow}>
+        {ORDER_OPTIONS.map(o => (
+          <button
+            key={o.value}
+            className={`${styles.ctrlBtn} ${playback.order === o.value ? styles.ctrlActive : ''}`}
+            onClick={() => setPlaybackOrder(o.value)}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Speed + repeat controls */}
+      <div className={styles.ctrlRow}>
+        <span className={styles.ctrlTag}>Speed</span>
+        {SPEED_OPTIONS.map(s => (
+          <button
+            key={s}
+            className={`${styles.ctrlBtn} ${playback.greekSpeed === s ? styles.ctrlActive : ''}`}
+            onClick={() => setGreekSpeed(s)}
+          >
+            {s === 1.0 ? '1×' : `${s}×`}
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.ctrlRow}>
+        <span className={styles.ctrlTag}>Repeat</span>
+        {REPEAT_OPTIONS.map(n => (
+          <button
+            key={n}
+            className={`${styles.ctrlBtn} ${playback.sentenceRepeat === n ? styles.ctrlActive : ''}`}
+            onClick={() => dispatch({ type: 'SET_PLAYBACK', playback: { sentenceRepeat: n, sentencePlayCount: 0 } })}
+          >
+            {repeatLabel(n)}
+          </button>
+        ))}
+      </div>
 
       <div className={styles.transport}>
         <button className={styles.transportBtn} onClick={prevSentence}>
