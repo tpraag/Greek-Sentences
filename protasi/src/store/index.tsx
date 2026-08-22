@@ -188,6 +188,7 @@ interface AppContextValue {
   prevSentence: () => void
   setGreekSpeed: (speed: GreekSpeed) => void
   setPlaybackOrder: (order: PlaybackOrder) => void
+  setGapSeconds: (gapSeconds: number) => void
 }
 
 const AppContext = createContext<AppContextValue>(null!)
@@ -681,6 +682,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_PLAYBACK', playback: { order } })
   }, [])
 
+  // Change the pause between sentences mid-playback; takes effect from the next gap
+  const setGapSeconds = useCallback((gapSeconds: number) => {
+    dispatch({ type: 'SET_PLAYBACK', playback: { gapSeconds } })
+  }, [])
+
   return (
     <AppContext.Provider value={{
       state, dispatch,
@@ -691,7 +697,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLearningStatus, recordQuizResult,
       saveSettings, showToast,
       startPlayback, stopPlayback, pauseResume, nextSentence, prevSentence,
-      setGreekSpeed, setPlaybackOrder,
+      setGreekSpeed, setPlaybackOrder, setGapSeconds,
     }}>
       {children}
     </AppContext.Provider>

@@ -180,6 +180,28 @@
   background: rgba(143,189,177,.12);
 }
 
+.stepBtn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.18);
+  color: rgba(255,255,255,.7);
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stepBtn:active { background: rgba(255,255,255,.1); }
+
+.stepVal {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-light);
+  min-width: 24px;
+  text-align: center;
+}
+
 .repeatRow {
   display: flex;
   gap: 8px;

@@ -16,7 +16,7 @@ const SPEED_OPTIONS: GreekSpeed[] = [0.7, 0.85, 1.0]
 const MAX_DOTS = 12
 
 export default function ImmersivePlayer() {
-  const { state, dispatch, pauseResume, nextSentence, prevSentence, stopPlayback, setGreekSpeed, setPlaybackOrder, setLearningStatus } = useApp()
+  const { state, dispatch, pauseResume, nextSentence, prevSentence, stopPlayback, setGreekSpeed, setPlaybackOrder, setGapSeconds, setLearningStatus } = useApp()
   const { playback } = state
   const [wordCache, setWordCache] = useState<Record<string, string>>({})
   const [popover, setPopover] = useState<{ word: string; translation: string; loading: boolean } | null>(null)
@@ -181,6 +181,13 @@ export default function ImmersivePlayer() {
             {s === 1.0 ? '1×' : `${s}×`}
           </button>
         ))}
+      </div>
+
+      <div className={styles.ctrlRow}>
+        <span className={styles.ctrlTag}>Gap</span>
+        <button className={styles.stepBtn} onClick={() => setGapSeconds(Math.max(0, playback.gapSeconds - 1))}>−</button>
+        <span className={styles.stepVal}>{playback.gapSeconds}s</span>
+        <button className={styles.stepBtn} onClick={() => setGapSeconds(Math.min(10, playback.gapSeconds + 1))}>+</button>
       </div>
 
       <div className={styles.ctrlRow}>
