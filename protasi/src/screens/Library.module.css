@@ -33,6 +33,33 @@
 }
 .search::placeholder { color: var(--ink-placeholder); }
 
+.progressCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 13px;
+  background: var(--accent-tint);
+  text-align: left;
+}
+
+.progressLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.progressStats {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
 .section { padding: 0 24px; }
 
 .sectionHeader {
@@ -96,6 +123,20 @@
 .colSub {
   font-size: 13px;
   color: var(--ink-muted);
+}
+
+.colMasteryBar {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--border);
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.colMasteryBarFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 1px;
 }
 
 .chevron {

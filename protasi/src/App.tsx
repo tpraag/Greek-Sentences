@@ -9,6 +9,7 @@ import CollectionView from './screens/CollectionView'
 import SentenceDetail from './screens/SentenceDetail'
 import QuickAdd from './screens/QuickAdd'
 import Settings from './screens/Settings'
+import Progress from './screens/Progress'
 import TabBar from './components/TabBar'
 import CompactPlayer from './components/CompactPlayer'
 import ImmersivePlayer from './components/ImmersivePlayer'
@@ -21,11 +22,12 @@ interface Nav {
   tab: Tab
   collectionId: string | null
   sentenceId: string | null
+  screen: 'progress' | null
 }
 
 function AppInner() {
   const { state } = useApp()
-  const [nav, setNav] = useState<Nav>({ tab: 'library', collectionId: null, sentenceId: null })
+  const [nav, setNav] = useState<Nav>({ tab: 'library', collectionId: null, sentenceId: null, screen: null })
   const [quickAdd, setQuickAdd] = useState(false)
 
   // Auth gate: undefined = still checking, null = signed out, User = signed in
@@ -41,23 +43,28 @@ function AppInner() {
   if (isFirebaseConfigured && !authUser) return <Login />
 
   function goToCollection(id: string) {
-    setNav({ tab: 'library', collectionId: id, sentenceId: null })
+    setNav({ tab: 'library', collectionId: id, sentenceId: null, screen: null })
   }
   function goToSentence(id: string) {
     setNav(n => ({ ...n, sentenceId: id }))
   }
   function goBackToLibrary() {
-    setNav({ tab: 'library', collectionId: null, sentenceId: null })
+    setNav({ tab: 'library', collectionId: null, sentenceId: null, screen: null })
   }
   function goBackToCollection() {
     setNav(n => ({ ...n, sentenceId: null }))
   }
+  function goToProgress() {
+    setNav(n => ({ ...n, screen: 'progress' }))
+  }
 
-  const showTabBar = !quickAdd && !(state.playback.active && state.playback.view === 'immersive')
+  const showTabBar = !quickAdd && !nav.screen && !(state.playback.active && state.playback.view === 'immersive')
 
   return (
     <>
-      {nav.sentenceId && nav.collectionId ? (
+      {nav.screen === 'progress' ? (
+        <Progress onBack={goBackToLibrary} />
+      ) : nav.sentenceId && nav.collectionId ? (
         <SentenceDetail
           sentenceId={nav.sentenceId}
           collectionId={nav.collectionId}
@@ -70,7 +77,7 @@ function AppInner() {
           onSentence={goToSentence}
         />
       ) : nav.tab === 'library' ? (
-        <Library onOpen={goToCollection} />
+        <Library onOpen={goToCollection} onProgress={goToProgress} />
       ) : (
         <Settings />
       )}
@@ -87,12 +94,12 @@ function AppInner() {
       )}
 
       <ImmersivePlayer />
-      <CompactPlayer />
+      {!nav.screen && <CompactPlayer />}
 
       {showTabBar && (
         <TabBar
           active={nav.tab}
-          onTab={t => setNav({ tab: t, collectionId: null, sentenceId: null })}
+          onTab={t => setNav({ tab: t, collectionId: null, sentenceId: null, screen: null })}
           onAdd={() => setQuickAdd(true)}
         />
       )}

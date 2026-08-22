@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react'
 import { useApp } from '../store'
 import { translateWordCached, normalizeWord } from '../lib/wordCache'
-import type { GreekSpeed } from '../types'
+import { getLearningStatus } from '../lib/mastery'
+import LearningStatusControl from '../components/LearningStatusControl'
+import type { GreekSpeed, LearningStatus } from '../types'
 import styles from './SentenceDetail.module.css'
 
 interface Props {
@@ -11,7 +13,7 @@ interface Props {
 }
 
 export default function SentenceDetail({ sentenceId, collectionId, onBack }: Props) {
-  const { state, updateSentence, translateSentence, generateAudio, deleteSentence, startPlayback, showToast } = useApp()
+  const { state, updateSentence, translateSentence, generateAudio, deleteSentence, startPlayback, showToast, setLearningStatus } = useApp()
   const [speed, setSpeed] = useState<GreekSpeed>(state.settings.greekSpeed)
   const [loop, setLoop] = useState(false)
   const [_playingLang, setPlayingLang] = useState<'en' | 'gr' | null>(null)
@@ -111,6 +113,10 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack }: Pro
     await updateSentence(sentenceId, collectionId, { enAudioUrl: null, grAudioUrl: null })
     if (sentence.en) await generateAudio(sentenceId, collectionId, 'en')
     if (sentence.gr) await generateAudio(sentenceId, collectionId, 'gr')
+  }
+
+  function handleStatusChange(status: LearningStatus) {
+    setLearningStatus(sentenceId, collectionId, status)
   }
 
   async function handleDelete() {
@@ -233,6 +239,12 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack }: Pro
               </svg>
               Ελληνικά
             </button>
+          </div>
+
+          {/* Learning status */}
+          <div className={styles.controlGroup} style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+            <span className={styles.controlLabel}>Learning status</span>
+            <LearningStatusControl value={getLearningStatus(sentence)} onChange={handleStatusChange} />
           </div>
 
           {/* Greek speed */}

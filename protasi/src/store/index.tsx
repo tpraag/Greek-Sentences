@@ -1,15 +1,17 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback } from 'react'
 import type {
   Collection, Sentence, Settings, PlaybackState, PlaybackOrder, PlayerView, GreekSpeed,
+  UserProgress, LearningStatus, QuizResult,
 } from '../types'
 import * as db from '../lib/db'
-import { subscribeCollections, subscribeSettings, subscribeSentences, subscribeAllSentences } from '../lib/db'
+import { subscribeCollections, subscribeSettings, subscribeSentences, subscribeAllSentences, subscribeProgress, incrementLifetimeMasteryPoints } from '../lib/db'
 import { isFirebaseConfigured } from '../lib/firebase'
 import { subscribeAuth } from '../lib/auth'
 import { translateToGreek, generateSpeech } from '../lib/api'
 import { uploadAudio } from '../lib/db'
 import { cacheAudioBlob, getCachedObjectUrl, fetchAndCache } from '../lib/audioCache'
 import { precacheWords } from '../lib/wordCache'
+import { getLearningStatus, countWords, calcMasteryPoints } from '../lib/mastery'
 
 const DEFAULT_SETTINGS: Settings = {
   enVoiceId: '',
@@ -22,6 +24,10 @@ const DEFAULT_SETTINGS: Settings = {
   defaultPlayerView: 'compact',
   autoTranslate: true,
   autoNarrate: true,
+}
+
+const DEFAULT_PROGRESS: UserProgress = {
+  lifetimeMasteryPoints: 0,
 }
 
 const DEFAULT_PLAYBACK: PlaybackState = {
@@ -45,6 +51,7 @@ interface AppState {
   collections: Collection[]
   sentences: Record<string, Sentence[]>  // keyed by collectionId
   settings: Settings
+  progress: UserProgress
   playback: PlaybackState
   loading: boolean
   toast: string | null
@@ -61,6 +68,7 @@ type Action =
   | { type: 'UPDATE_SENTENCE'; id: string; collectionId: string; data: Partial<Sentence> }
   | { type: 'DELETE_SENTENCE'; id: string; collectionId: string }
   | { type: 'SET_SETTINGS'; settings: Settings }
+  | { type: 'SET_PROGRESS'; progress: UserProgress }
   | { type: 'SET_PLAYBACK'; playback: Partial<PlaybackState> }
   | { type: 'STOP_PLAYBACK' }
   | { type: 'SET_LOADING'; loading: boolean }
@@ -141,6 +149,8 @@ function reducer(state: AppState, action: Action): AppState {
     }
     case 'SET_SETTINGS':
       return { ...state, settings: action.settings }
+    case 'SET_PROGRESS':
+      return { ...state, progress: action.progress }
     case 'SET_PLAYBACK':
       return { ...state, playback: { ...state.playback, ...action.playback } }
     case 'STOP_PLAYBACK':
@@ -167,6 +177,8 @@ interface AppContextValue {
   deleteSentence: (id: string, collectionId: string) => Promise<void>
   translateSentence: (id: string, collectionId: string) => Promise<void>
   generateAudio: (id: string, collectionId: string, lang: 'en' | 'gr') => Promise<string>
+  setLearningStatus: (id: string, collectionId: string, status: LearningStatus) => Promise<void>
+  recordQuizResult: (id: string, collectionId: string, result: QuizResult) => Promise<void>
   saveSettings: (s: Settings) => Promise<void>
   showToast: (msg: string, ms?: number) => void
   startPlayback: (collectionId: string, queue: string[], opts: { order: PlaybackOrder; gapSeconds: number; view: PlayerView; greekSpeed: GreekSpeed; loopList?: boolean; sentenceRepeat?: number }) => void
@@ -185,6 +197,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     collections: [],
     sentences: {},
     settings: DEFAULT_SETTINGS,
+    progress: DEFAULT_PROGRESS,
     playback: DEFAULT_PLAYBACK,
     loading: true,
     toast: null,
@@ -236,6 +249,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Merge over defaults so fields missing from an older settings doc
         // (e.g. autoTranslate / autoNarrate) don't read back as `undefined`.
         if (settings) dispatch({ type: 'SET_SETTINGS', settings: { ...DEFAULT_SETTINGS, ...settings } })
+      }))
+
+      dataUnsubs.push(subscribeProgress(progress => {
+        dispatch({ type: 'SET_PROGRESS', progress: { ...DEFAULT_PROGRESS, ...progress } })
       }))
     })
 
@@ -363,6 +380,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data: { [field]: url } })
     return url
   }, [state.sentences, state.settings])
+
+  const setLearningStatus = useCallback(async (id: string, collectionId: string, status: LearningStatus) => {
+    const sentences = state.sentences[collectionId] ?? []
+    const sentence = sentences.find(s => s.id === id)
+    if (!sentence) return
+
+    const data: Partial<Sentence> = { learningStatus: status }
+    const wasMastered = getLearningStatus(sentence) === 'mastered'
+
+    if (status === 'mastered' && !wasMastered) {
+      const now = Date.now()
+      data.lastMasteredDate = now
+      if (!sentence.masteryPointsAwarded) {
+        const points = calcMasteryPoints(countWords(sentence.gr ?? sentence.en ?? ''))
+        data.masteryPointsAwarded = true
+        data.masteryPointsValue = points
+        data.firstMasteredDate = sentence.firstMasteredDate ?? now
+        if (points > 0) {
+          incrementLifetimeMasteryPoints(points).catch(e => console.error('incrementLifetimeMasteryPoints:', e))
+          dispatch({ type: 'SET_PROGRESS', progress: { ...state.progress, lifetimeMasteryPoints: state.progress.lifetimeMasteryPoints + points } })
+          showToast(`+${points} Mastery Point${points !== 1 ? 's' : ''}`)
+        }
+      }
+    }
+
+    await db.updateSentence(id, data)
+    dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data })
+  }, [state.sentences, state.progress, showToast])
+
+  const recordQuizResult = useCallback(async (id: string, collectionId: string, result: QuizResult) => {
+    const sentences = state.sentences[collectionId] ?? []
+    const sentence = sentences.find(s => s.id === id)
+    if (!sentence) return
+
+    const data: Partial<Sentence> = {
+      lastQuizDate: Date.now(),
+      lastQuizResult: result,
+      quizAttempts: (sentence.quizAttempts ?? 0) + 1,
+      quizCorrect: (sentence.quizCorrect ?? 0) + (result === 'correct' ? 1 : 0),
+      quizAlmost: (sentence.quizAlmost ?? 0) + (result === 'almost' ? 1 : 0),
+      quizIncorrect: (sentence.quizIncorrect ?? 0) + (result === 'incorrect' ? 1 : 0),
+    }
+
+    await db.updateSentence(id, data)
+    dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data })
+  }, [state.sentences])
 
   const saveSettings = useCallback(async (settings: Settings) => {
     dispatch({ type: 'SET_SETTINGS', settings })
@@ -625,6 +688,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createCollection, updateCollection, deleteCollection,
       createSentence, updateSentence, deleteSentence,
       translateSentence, generateAudio,
+      setLearningStatus, recordQuizResult,
       saveSettings, showToast,
       startPlayback, stopPlayback, pauseResume, nextSentence, prevSentence,
       setGreekSpeed, setPlaybackOrder,

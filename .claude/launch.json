@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "protasi-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "protasi", "run", "dev"],
+      "port": 5173
+    }
+  ]
+}

@@ -95,6 +95,21 @@
   padding-left: 50px;
 }
 
+.masteryBar {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  margin: 8px 0 0 50px;
+  overflow: hidden;
+}
+
+.masteryBarFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width .2s;
+}
+
 .playBar {
   margin: 0 24px 12px;
   background: var(--accent);

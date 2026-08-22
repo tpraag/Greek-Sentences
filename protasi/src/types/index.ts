@@ -71,6 +71,9 @@ export const ICON_GROUPS: { label: string; icons: IconName[] }[] = [
   { label: 'General',         icons: ['folder', 'tag', 'bookmark', 'message', 'phone', 'mail'] },
 ]
 
+export type LearningStatus = 'new' | 'learning' | 'good' | 'mastered'
+export type QuizResult = 'correct' | 'almost' | 'incorrect'
+
 export interface Sentence {
   id: string
   en: string
@@ -84,6 +87,22 @@ export interface Sentence {
   grVoiceId?: string
   collectionId: string
   createdAt: number
+  // Learning progress — undefined learningStatus means 'new' (see lib/mastery.ts)
+  learningStatus?: LearningStatus
+  masteryPointsAwarded?: boolean
+  masteryPointsValue?: number
+  firstMasteredDate?: number | null
+  lastMasteredDate?: number | null
+  lastQuizDate?: number | null
+  quizAttempts?: number
+  quizCorrect?: number
+  quizAlmost?: number
+  quizIncorrect?: number
+  lastQuizResult?: QuizResult | null
+}
+
+export interface UserProgress {
+  lifetimeMasteryPoints: number
 }
 
 export interface Collection {

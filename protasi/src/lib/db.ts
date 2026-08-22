@@ -9,11 +9,12 @@ import {
   query,
   where,
   orderBy,
+  increment,
   type Unsubscribe,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 import { db, storage, firebaseAuthReady } from './firebase'
-import type { Collection, Sentence, Settings } from '../types'
+import type { Collection, Sentence, Settings, UserProgress } from '../types'
 
 // Real-time listener — calls onData immediately from cache, then again when server responds
 export function subscribeCollections(onData: (cols: Collection[]) => void): Unsubscribe {
@@ -115,4 +116,15 @@ export async function deleteAudio(sentenceId: string, lang: 'en' | 'gr'): Promis
 
 export async function saveSettings(data: Settings): Promise<void> {
   await setDoc(doc(db, 'app', 'settings'), data)
+}
+
+export function subscribeProgress(onData: (p: UserProgress | null) => void): Unsubscribe {
+  return onSnapshot(doc(db, 'app', 'progress'), snap => {
+    onData(snap.exists() ? (snap.data() as UserProgress) : null)
+  }, () => onData(null))
+}
+
+// Atomic increment so double-tapping Mastered can't double-award points.
+export async function incrementLifetimeMasteryPoints(points: number): Promise<void> {
+  await setDoc(doc(db, 'app', 'progress'), { lifetimeMasteryPoints: increment(points) }, { merge: true })
 }

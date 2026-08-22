@@ -2,14 +2,16 @@ import { useState } from 'react'
 import { useApp } from '../store'
 import CollectionIcon from '../components/CollectionIcon'
 import NewCollectionPanel from '../components/NewCollectionPanel'
+import { isMastered } from '../lib/mastery'
 import type { IconName, CollectionColor } from '../types'
 import styles from './Library.module.css'
 
 interface Props {
   onOpen: (id: string) => void
+  onProgress: () => void
 }
 
-export default function Library({ onOpen }: Props) {
+export default function Library({ onOpen, onProgress }: Props) {
   const { state, createCollection } = useApp()
   const [showNew, setShowNew] = useState(false)
   const [search, setSearch] = useState('')
@@ -17,6 +19,7 @@ export default function Library({ onOpen }: Props) {
   const { collections, sentences } = state
 
   const totalSentences = Object.values(sentences).reduce((a, b) => a + b.length, 0)
+  const totalMastered = Object.values(sentences).reduce((a, list) => a + list.filter(isMastered).length, 0)
 
   const filtered = collections.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase())
@@ -45,6 +48,13 @@ export default function Library({ onOpen }: Props) {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
+
+        <button className={styles.progressCard} onClick={onProgress}>
+          <span className={styles.progressLabel}>Greek Progress</span>
+          <span className={styles.progressStats}>
+            {state.progress.lifetimeMasteryPoints} Mastery Points · {totalMastered} Mastered
+          </span>
+        </button>
       </div>
 
       <div className={styles.section}>
@@ -61,7 +71,9 @@ export default function Library({ onOpen }: Props) {
 
         <div className={styles.list}>
           {filtered.map(col => {
-            const count = (sentences[col.id] ?? []).length
+            const colSentences = sentences[col.id] ?? []
+            const count = colSentences.length
+            const mastered = colSentences.filter(isMastered).length
             return (
               <button key={col.id} className={`card ${styles.collectionCard}`} onClick={() => onOpen(col.id)}>
                 <div className={styles.iconWrap} style={{ background: col.color.bg }}>
@@ -69,7 +81,14 @@ export default function Library({ onOpen }: Props) {
                 </div>
                 <div className={styles.colMeta}>
                   <span className={styles.colName}>{col.name}</span>
-                  <span className={styles.colSub}>{count} sentence{count !== 1 ? 's' : ''}</span>
+                  <span className={styles.colSub}>
+                    {count} sentence{count !== 1 ? 's' : ''}{mastered > 0 && ` · ${mastered} mastered`}
+                  </span>
+                  {count > 0 && mastered > 0 && (
+                    <div className={styles.colMasteryBar}>
+                      <div className={styles.colMasteryBarFill} style={{ width: `${(mastered / count) * 100}%` }} />
+                    </div>
+                  )}
                 </div>
                 <svg className={styles.chevron} width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="1 1 7 7 1 13"/>

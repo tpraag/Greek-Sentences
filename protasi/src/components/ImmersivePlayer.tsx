@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useApp } from '../store'
 import { translateWordCached, normalizeWord } from '../lib/wordCache'
-import type { PlaybackOrder, GreekSpeed } from '../types'
+import { getLearningStatus, LEARNING_STATUSES, STATUS_LABEL } from '../lib/mastery'
+import type { PlaybackOrder, GreekSpeed, LearningStatus } from '../types'
 import styles from './ImmersivePlayer.module.css'
 
 const ORDER_OPTIONS: { value: PlaybackOrder; label: string }[] = [
@@ -14,7 +15,7 @@ const SPEED_OPTIONS: GreekSpeed[] = [0.7, 0.85, 1.0]
 const MAX_DOTS = 12
 
 export default function ImmersivePlayer() {
-  const { state, dispatch, pauseResume, nextSentence, prevSentence, stopPlayback, setGreekSpeed, setPlaybackOrder } = useApp()
+  const { state, dispatch, pauseResume, nextSentence, prevSentence, stopPlayback, setGreekSpeed, setPlaybackOrder, setLearningStatus } = useApp()
   const { playback } = state
   const [wordCache, setWordCache] = useState<Record<string, string>>({})
   const [popover, setPopover] = useState<{ word: string; translation: string; loading: boolean } | null>(null)
@@ -128,6 +129,22 @@ export default function ImmersivePlayer() {
           </button>
         ))}
       </div>
+
+      {/* Learning status — same compact pill pattern as Order/Speed/Repeat above */}
+      {current && (
+        <div className={styles.ctrlRow}>
+          <span className={styles.ctrlTag}>Status</span>
+          {LEARNING_STATUSES.map(status => (
+            <button
+              key={status}
+              className={`${styles.ctrlBtn} ${getLearningStatus(current) === status ? styles.ctrlActive : ''}`}
+              onClick={() => setLearningStatus(current.id, current.collectionId, status as LearningStatus)}
+            >
+              {STATUS_LABEL[status]}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Speed + repeat controls */}
       <div className={styles.ctrlRow}>

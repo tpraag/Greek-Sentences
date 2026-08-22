@@ -4,6 +4,8 @@ import CollectionIcon from '../components/CollectionIcon'
 import NewCollectionPanel from '../components/NewCollectionPanel'
 import PlaySetupSheet from '../components/PlaySetupSheet'
 import SwipeToDelete from '../components/SwipeToDelete'
+import StatusDot from '../components/StatusDot'
+import { isMastered } from '../lib/mastery'
 import type { IconName, CollectionColor, Sentence } from '../types'
 import styles from './CollectionView.module.css'
 
@@ -52,6 +54,7 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
   }
 
   const translated = sentences.filter(s => s.gr)
+  const masteredCount = sentences.filter(isMastered).length
 
   function handlePlayAll() {
     setPlaySetup(true)
@@ -116,7 +119,15 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
           </div>
           <button className={styles.menuBtn} onClick={() => setMenuOpen(true)}>•••</button>
         </div>
-        <p className={styles.sub}>{sentences.length} sentence{sentences.length !== 1 ? 's' : ''} · {translated.length} translated</p>
+        <p className={styles.sub}>
+          {sentences.length} sentence{sentences.length !== 1 ? 's' : ''} · {translated.length} translated
+          {masteredCount > 0 && ` · ${masteredCount} mastered`}
+        </p>
+        {sentences.length > 0 && (
+          <div className={styles.masteryBar}>
+            <div className={styles.masteryBarFill} style={{ width: `${(masteredCount / sentences.length) * 100}%` }} />
+          </div>
+        )}
       </div>
 
       {/* Play all bar */}
@@ -181,6 +192,7 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
                     )}
                     <span className={styles.en}>{s.en}</span>
                   </div>
+                  <StatusDot sentence={s} />
                   <button
                     className={styles.favBtn}
                     onClick={e => {
