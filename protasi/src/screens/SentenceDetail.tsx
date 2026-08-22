@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react'
 import { useApp } from '../store'
 import { translateWordCached, normalizeWord } from '../lib/wordCache'
-import { getLearningStatus } from '../lib/mastery'
 import LearningStatusControl from '../components/LearningStatusControl'
 import type { GreekSpeed, LearningStatus } from '../types'
 import styles from './SentenceDetail.module.css'
@@ -244,7 +243,7 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack }: Pro
           {/* Learning status */}
           <div className={styles.controlGroup} style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
             <span className={styles.controlLabel}>Learning status</span>
-            <LearningStatusControl value={getLearningStatus(sentence)} onChange={handleStatusChange} />
+            <LearningStatusControl sentence={sentence} onChange={handleStatusChange} />
           </div>
 
           {/* Greek speed */}

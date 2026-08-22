@@ -55,13 +55,22 @@
   margin-bottom: 20px;
 }
 
-.textArea {
+.midSection {
   flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.textArea {
   display: flex;
   flex-direction: column;
   gap: 16px;
   width: 100%;
-  overflow: hidden;
 }
 
 .primary {
@@ -119,6 +128,25 @@
 .popoverArrow { color: rgba(255,255,255,.4); }
 .popoverTranslation { flex: 1; color: rgba(255,255,255,.85); font-weight: 500; }
 .popoverClose { color: rgba(255,255,255,.4); font-size: 13px; padding: 2px 4px; }
+
+/* Large, color-coded learning-status buttons — easy to hit while listening */
+.statusGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.statusBtn {
+  padding: 11px 8px;
+  border-radius: 12px;
+  border: 1.5px solid;
+  background: rgba(255,255,255,.04);
+  font-size: 13px;
+  font-weight: 700;
+  transition: all .15s;
+}
+.statusBtn:active { opacity: .8; }
 
 /* Compact in-player controls (order / speed / repeat) */
 .ctrlRow {

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useApp } from '../store'
 import { translateWordCached, normalizeWord } from '../lib/wordCache'
-import { getLearningStatus, LEARNING_STATUSES, STATUS_LABEL } from '../lib/mastery'
+import { getLearningStatus, LEARNING_STATUSES, STATUS_LABEL, STATUS_COLOR } from '../lib/mastery'
+import MasteryConfirmSheet from './MasteryConfirmSheet'
 import type { PlaybackOrder, GreekSpeed, LearningStatus } from '../types'
 import styles from './ImmersivePlayer.module.css'
 
@@ -19,6 +20,7 @@ export default function ImmersivePlayer() {
   const { playback } = state
   const [wordCache, setWordCache] = useState<Record<string, string>>({})
   const [popover, setPopover] = useState<{ word: string; translation: string; loading: boolean } | null>(null)
+  const [confirmingMastery, setConfirmingMastery] = useState(false)
 
   async function handleWordTap(word: string) {
     const clean = normalizeWord(word)
@@ -87,34 +89,71 @@ export default function ImmersivePlayer() {
       <div className={styles.langLabel}>{langLabel} · {playback.qpos + 1} of {playback.queue.length}</div>
 
       {current && (
-        <div className={styles.textArea} onClick={() => setPopover(null)}>
-          {/* Greek is always the primary text, on top — tap any word for its translation */}
-          {current.gr ? (
-            <p className={`${styles.primary} serif`} style={{ position: 'relative' }}>
-              {current.gr.split(/(\s+)/).map((token, i) =>
-                /\s+/.test(token) ? token :
-                <span
-                  key={i}
-                  className={styles.grWord}
-                  onClick={e => { e.stopPropagation(); handleWordTap(token) }}
-                >{token}</span>
-              )}
-            </p>
-          ) : (
-            <p className={styles.primary}>{current.en}</p>
-          )}
-          {current.gr && (
-            <p className={styles.secondary}>{current.en}</p>
-          )}
-          {popover && (
-            <div className={styles.wordPopover}>
-              <span className={styles.popoverWord}>{popover.word}</span>
-              <span className={styles.popoverArrow}>→</span>
-              <span className={styles.popoverTranslation}>{popover.loading ? '…' : popover.translation}</span>
-              <button className={styles.popoverClose} onClick={() => setPopover(null)}>✕</button>
-            </div>
-          )}
+        <div className={styles.midSection}>
+          <div className={styles.textArea} onClick={() => setPopover(null)}>
+            {/* Greek is always the primary text, on top — tap any word for its translation */}
+            {current.gr ? (
+              <p className={`${styles.primary} serif`} style={{ position: 'relative' }}>
+                {current.gr.split(/(\s+)/).map((token, i) =>
+                  /\s+/.test(token) ? token :
+                  <span
+                    key={i}
+                    className={styles.grWord}
+                    onClick={e => { e.stopPropagation(); handleWordTap(token) }}
+                  >{token}</span>
+                )}
+              </p>
+            ) : (
+              <p className={styles.primary}>{current.en}</p>
+            )}
+            {current.gr && (
+              <p className={styles.secondary}>{current.en}</p>
+            )}
+            {popover && (
+              <div className={styles.wordPopover}>
+                <span className={styles.popoverWord}>{popover.word}</span>
+                <span className={styles.popoverArrow}>→</span>
+                <span className={styles.popoverTranslation}>{popover.loading ? '…' : popover.translation}</span>
+                <button className={styles.popoverClose} onClick={() => setPopover(null)}>✕</button>
+              </div>
+            )}
+          </div>
+
+          {/* Learning status — color-coded grid so it's easy to hit while listening */}
+          <div className={styles.statusGrid}>
+            {LEARNING_STATUSES.map(status => {
+              const currentStatus = getLearningStatus(current)
+              const active = currentStatus === status
+              return (
+                <button
+                  key={status}
+                  className={styles.statusBtn}
+                  style={active
+                    ? { background: STATUS_COLOR[status], borderColor: STATUS_COLOR[status], color: '#fff' }
+                    : { borderColor: STATUS_COLOR[status], color: STATUS_COLOR[status] }}
+                  onClick={() => {
+                    // Marking Mastered permanently awards points — confirm first so an accidental tap can't do it.
+                    if (status === 'mastered' && currentStatus !== 'mastered') {
+                      setConfirmingMastery(true)
+                      return
+                    }
+                    setLearningStatus(current.id, current.collectionId, status as LearningStatus)
+                  }}
+                >
+                  {STATUS_LABEL[status]}
+                </button>
+              )
+            })}
+          </div>
         </div>
+      )}
+
+      {confirmingMastery && current && (
+        <MasteryConfirmSheet
+          sentence={current}
+          onConfirm={() => { setLearningStatus(current.id, current.collectionId, 'mastered'); setConfirmingMastery(false) }}
+          onCancel={() => setConfirmingMastery(false)}
+        />
       )}
 
       {/* Order control */}
@@ -129,22 +168,6 @@ export default function ImmersivePlayer() {
           </button>
         ))}
       </div>
-
-      {/* Learning status — same compact pill pattern as Order/Speed/Repeat above */}
-      {current && (
-        <div className={styles.ctrlRow}>
-          <span className={styles.ctrlTag}>Status</span>
-          {LEARNING_STATUSES.map(status => (
-            <button
-              key={status}
-              className={`${styles.ctrlBtn} ${getLearningStatus(current) === status ? styles.ctrlActive : ''}`}
-              onClick={() => setLearningStatus(current.id, current.collectionId, status as LearningStatus)}
-            >
-              {STATUS_LABEL[status]}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Speed + repeat controls */}
       <div className={styles.ctrlRow}>
