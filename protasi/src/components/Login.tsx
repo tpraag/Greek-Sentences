@@ -1,24 +1,40 @@
 import { useState } from 'react'
-import { signInWithPassword } from '../lib/auth'
+import { signIn, signUp } from '../lib/auth'
 import styles from './Login.module.css'
 
+type Mode = 'signin' | 'signup'
+
 export default function Login() {
+  const [mode, setMode] = useState<Mode>('signin')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
+  const canSubmit = email.trim() && password && (mode === 'signin' || inviteCode.trim())
+
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!password || busy) return
+    if (!canSubmit || busy) return
     setBusy(true)
     setError('')
     try {
-      await signInWithPassword(password)
+      if (mode === 'signin') {
+        await signIn(email.trim(), password)
+      } else {
+        await signUp(email.trim(), password, inviteCode.trim())
+      }
       // On success, the auth listener in App swaps to the app automatically.
-    } catch {
-      setError('Incorrect password')
+    } catch (err) {
+      setError(mode === 'signin' ? 'Incorrect email or password' : (err as Error).message || 'Sign up failed')
       setBusy(false)
     }
+  }
+
+  function toggleMode() {
+    setMode(m => m === 'signin' ? 'signup' : 'signin')
+    setError('')
   }
 
   return (
@@ -26,24 +42,48 @@ export default function Login() {
       <div className={styles.card}>
         <img src="/apple-touch-icon-180x180.png" alt="" className={styles.logo} />
         <h1 className={styles.title}>Protasi</h1>
-        <p className={styles.sub}>Enter your password to continue</p>
+        <p className={styles.sub}>
+          {mode === 'signin' ? 'Sign in to continue' : 'Create your account'}
+        </p>
 
         <form onSubmit={submit} className={styles.form}>
           <input
             className={styles.input}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            autoFocus
+          />
+          <input
+            className={styles.input}
             type="password"
-            inputMode="text"
-            autoComplete="current-password"
+            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
             placeholder="Password"
             value={password}
             onChange={e => setPassword(e.target.value)}
-            autoFocus
           />
+          {mode === 'signup' && (
+            <input
+              className={styles.input}
+              type="text"
+              autoComplete="off"
+              placeholder="Invite code"
+              value={inviteCode}
+              onChange={e => setInviteCode(e.target.value)}
+            />
+          )}
           {error && <div className={styles.error}>{error}</div>}
-          <button className="btn-accent" type="submit" disabled={busy || !password}>
-            {busy ? 'Signing in…' : 'Unlock'}
+          <button className="btn-accent" type="submit" disabled={busy || !canSubmit}>
+            {busy ? (mode === 'signin' ? 'Signing in…' : 'Creating account…') : (mode === 'signin' ? 'Sign in' : 'Sign up')}
           </button>
         </form>
+
+        <button className={styles.toggle} onClick={toggleMode}>
+          {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+        </button>
       </div>
     </div>
   )

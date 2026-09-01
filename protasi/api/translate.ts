@@ -1,7 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { requireInvitedUser } from './_lib/verifyAuth'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).end()
+  if (!(await requireInvitedUser(req))) return res.status(401).json({ error: 'Unauthorized' })
 
   const { text, source = 'en', target = 'el' } = req.body as { text: string; source?: string; target?: string }
   if (!text) return res.status(400).json({ error: 'Missing text' })

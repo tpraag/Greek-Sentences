@@ -213,6 +213,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const nextStepRef = useRef<(() => void) | null>(null)
   const playbackRef = useRef<PlaybackState>(DEFAULT_PLAYBACK)
   playbackRef.current = state.playback
+  // Every db.ts call needs the signed-in user's uid to scope its path. Kept in a ref
+  // (set from the auth listener below) rather than threaded through every function's
+  // public signature — that's what keeps this refactor contained to the store/db layer;
+  // no screen or component needs to know uids exist.
+  const uidRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!isFirebaseConfigured) {
@@ -227,6 +232,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const unsubAuth = subscribeAuth(user => {
       dataUnsubs.forEach(u => u())
       dataUnsubs = []
+      uidRef.current = user?.uid ?? null
 
       if (!user) {
         dispatch({ type: 'SET_COLLECTIONS', collections: [] })
@@ -235,24 +241,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      dataUnsubs.push(subscribeCollections(collections => {
+      dataUnsubs.push(subscribeCollections(user.uid, collections => {
         dispatch({ type: 'SET_COLLECTIONS', collections })
         dispatch({ type: 'SET_LOADING', loading: false })
       }))
 
       // Keep every collection's sentences (and thus Library counts) in sync globally,
       // so counts are correct without having to open each collection first.
-      dataUnsubs.push(subscribeAllSentences(byCollection => {
+      dataUnsubs.push(subscribeAllSentences(user.uid, byCollection => {
         dispatch({ type: 'SET_ALL_SENTENCES', byCollection })
       }))
 
-      dataUnsubs.push(subscribeSettings(settings => {
+      dataUnsubs.push(subscribeSettings(user.uid, settings => {
         // Merge over defaults so fields missing from an older settings doc
         // (e.g. autoTranslate / autoNarrate) don't read back as `undefined`.
         if (settings) dispatch({ type: 'SET_SETTINGS', settings: { ...DEFAULT_SETTINGS, ...settings } })
       }))
 
-      dataUnsubs.push(subscribeProgress(progress => {
+      dataUnsubs.push(subscribeProgress(user.uid, progress => {
         dispatch({ type: 'SET_PROGRESS', progress: { ...DEFAULT_PROGRESS, ...progress } })
       }))
     })
@@ -270,13 +276,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const loadSentences = useCallback((collectionId: string) => {
-    return subscribeSentences(collectionId, sentences => {
+    if (!uidRef.current) return () => {}
+    return subscribeSentences(uidRef.current, collectionId, sentences => {
       dispatch({ type: 'SET_SENTENCES', collectionId, sentences })
     })
   }, [])
 
   const createCollection = useCallback(async (data: Omit<Collection, 'id'>) => {
-    const col = await db.createCollection(data)
+    const col = await db.createCollection(uidRef.current!, data)
     // onSnapshot will add it to state; dispatch here only if not yet present
     dispatch({ type: 'ADD_COLLECTION', collection: col })
     return col
@@ -284,12 +291,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const updateCollection = useCallback(async (id: string, data: Partial<Collection>) => {
     dispatch({ type: 'UPDATE_COLLECTION', id, data })
-    db.updateCollection(id, data).catch(e => console.error('updateCollection:', e))
+    db.updateCollection(uidRef.current!, id, data).catch(e => console.error('updateCollection:', e))
   }, [])
 
   const deleteCollection = useCallback(async (id: string) => {
     dispatch({ type: 'DELETE_COLLECTION', id })
-    db.deleteCollection(id).catch(e => console.error('deleteCollection:', e))
+    db.deleteCollection(uidRef.current!, id).catch(e => console.error('deleteCollection:', e))
   }, [])
 
   const createSentence = useCallback(async (
@@ -297,7 +304,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     autoTranslate = false,
     autoNarrate = false,
   ) => {
-    const sentence = await db.createSentence(data)
+    const uid = uidRef.current!
+    const sentence = await db.createSentence(uid, data)
     // onSnapshot will deliver the sentence; dispatch here as immediate optimistic add
     dispatch({ type: 'ADD_SENTENCE', sentence })
 
@@ -306,7 +314,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       showToast('Saved · translating…')
       try {
         const gr = await translateToGreek(sentence.en)
-        await db.updateSentence(sentence.id, { gr, translating: false })
+        await db.updateSentence(uid, sentence.id, { gr, translating: false })
         dispatch({ type: 'UPDATE_SENTENCE', id: sentence.id, collectionId: sentence.collectionId, data: { gr, translating: false } })
 
         // Background: pre-translate each word so taps are instant & work offline later
@@ -318,10 +326,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             generateSpeech(gr, state.settings.grVoiceId),
           ])
           const [enAudioUrl, grAudioUrl] = await Promise.all([
-            uploadAudio(sentence.id, 'en', enBlob),
-            uploadAudio(sentence.id, 'gr', grBlob),
+            uploadAudio(uid, sentence.id, 'en', enBlob),
+            uploadAudio(uid, sentence.id, 'gr', grBlob),
           ])
-          await db.updateSentence(sentence.id, { enAudioUrl, grAudioUrl })
+          await db.updateSentence(uid, sentence.id, { enAudioUrl, grAudioUrl })
           dispatch({ type: 'UPDATE_SENTENCE', id: sentence.id, collectionId: sentence.collectionId, data: { enAudioUrl, grAudioUrl } })
           showToast('Translation & audio ready')
         } else {
@@ -336,16 +344,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [state.settings, showToast])
 
   const updateSentence = useCallback(async (id: string, collectionId: string, data: Partial<Sentence>) => {
-    await db.updateSentence(id, data)
+    await db.updateSentence(uidRef.current!, id, data)
     dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data })
   }, [])
 
   const deleteSentence = useCallback(async (id: string, collectionId: string) => {
-    await db.deleteSentence(id)
+    const uid = uidRef.current!
+    await db.deleteSentence(uid, id)
     dispatch({ type: 'DELETE_SENTENCE', id, collectionId })
     // Best-effort cleanup of the audio blobs in Storage (ignore if they don't exist)
-    db.deleteAudio(id, 'en').catch(() => {})
-    db.deleteAudio(id, 'gr').catch(() => {})
+    db.deleteAudio(uid, id, 'en').catch(() => {})
+    db.deleteAudio(uid, id, 'gr').catch(() => {})
   }, [])
 
   const translateSentence = useCallback(async (id: string, collectionId: string) => {
@@ -355,7 +364,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data: { translating: true } })
     try {
       const gr = await translateToGreek(sentence.en)
-      await db.updateSentence(id, { gr, translating: false })
+      await db.updateSentence(uidRef.current!, id, { gr, translating: false })
       dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data: { gr, translating: false } })
       precacheWords(gr) // background pre-translate each word for offline taps
     } catch {
@@ -372,12 +381,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!text) throw new Error('No text to narrate')
     const voiceId = lang === 'en' ? state.settings.enVoiceId : state.settings.grVoiceId
     if (!voiceId) throw new Error('No voice configured')
+    const uid = uidRef.current!
     const blob = await generateSpeech(text, voiceId)
-    const url = await uploadAudio(id, lang, blob)
+    const url = await uploadAudio(uid, id, lang, blob)
     // Seed IndexedDB cache immediately — we already have the blob, no need to re-fetch later
     cacheAudioBlob(url, blob).catch(() => {})
     const field = lang === 'en' ? 'enAudioUrl' : 'grAudioUrl'
-    await db.updateSentence(id, { [field]: url })
+    await db.updateSentence(uid, id, { [field]: url })
     dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data: { [field]: url } })
     return url
   }, [state.sentences, state.settings])
@@ -399,14 +409,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         data.masteryPointsValue = points
         data.firstMasteredDate = sentence.firstMasteredDate ?? now
         if (points > 0) {
-          incrementLifetimeMasteryPoints(points).catch(e => console.error('incrementLifetimeMasteryPoints:', e))
+          incrementLifetimeMasteryPoints(uidRef.current!, points).catch(e => console.error('incrementLifetimeMasteryPoints:', e))
           dispatch({ type: 'SET_PROGRESS', progress: { ...state.progress, lifetimeMasteryPoints: state.progress.lifetimeMasteryPoints + points } })
           showToast(`+${points} Mastery Point${points !== 1 ? 's' : ''}`)
         }
       }
     }
 
-    await db.updateSentence(id, data)
+    await db.updateSentence(uidRef.current!, id, data)
     dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data })
   }, [state.sentences, state.progress, showToast])
 
@@ -424,13 +434,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       quizIncorrect: (sentence.quizIncorrect ?? 0) + (result === 'incorrect' ? 1 : 0),
     }
 
-    await db.updateSentence(id, data)
+    await db.updateSentence(uidRef.current!, id, data)
     dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data })
   }, [state.sentences])
 
   const saveSettings = useCallback(async (settings: Settings) => {
     dispatch({ type: 'SET_SETTINGS', settings })
-    db.saveSettings(settings).catch(e => console.error('saveSettings:', e))
+    db.saveSettings(uidRef.current!, settings).catch(e => console.error('saveSettings:', e))
   }, [])
 
   // Playback engine

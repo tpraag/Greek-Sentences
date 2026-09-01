@@ -1,0 +1,20 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // New, per-user audio.
+    match /users/{uid}/audio/{allPaths=**} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == uid
+        && request.auth.token.invited == true;
+    }
+
+    // TRANSITIONAL — existing audio at the original flat path. Download URLs already
+    // handed out carry their own access token and keep working regardless of this rule
+    // (Storage doesn't re-check rules on a tokened GET), but new reads/writes by a
+    // signed-in user still need this while any old-path writes could still occur.
+    // Remove once migration is confirmed complete (see plan).
+    match /audio/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

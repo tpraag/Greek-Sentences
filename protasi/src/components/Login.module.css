@@ -65,3 +65,10 @@
   font-weight: 500;
   color: var(--destructive);
 }
+
+.toggle {
+  margin-top: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+}
