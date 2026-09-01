@@ -1,16 +1,31 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useApp } from '../store'
 import { signOutUser } from '../lib/auth'
+import { generateSpeech } from '../lib/api'
 import { GREEK_VOICES, ENGLISH_VOICES } from '../lib/voices'
 import type { Settings as SettingsType, PlaybackOrder, PlayerView, GreekSpeed } from '../types'
 import styles from './Settings.module.css'
 
+const PREVIEW_TEXT = {
+  en: 'Hello! This is a quick preview of my voice.',
+  gr: 'Γεια σου! Αυτή είναι μια σύντομη δοκιμή της φωνής μου.',
+}
+
 export default function Settings() {
-  const { state, saveSettings } = useApp()
+  const { state, saveSettings, showToast } = useApp()
   const [form, setForm] = useState<SettingsType>(state.settings)
   const [saved, setSaved] = useState(false)
+  const [previewing, setPreviewing] = useState<'en' | 'gr' | null>(null)
+  const previewAudioRef = useRef<HTMLAudioElement>(new Audio())
+  // Caches generated preview audio per voice so re-sampling the same voice is free
+  const previewCacheRef = useRef<Map<string, string>>(new Map())
 
   useEffect(() => { setForm(state.settings) }, [state.settings])
+
+  // Revoke cached preview object URLs when leaving the screen
+  useEffect(() => () => {
+    previewCacheRef.current.forEach(url => URL.revokeObjectURL(url))
+  }, [])
 
   function set<K extends keyof SettingsType>(k: K, v: SettingsType[K]) {
     setForm(f => ({ ...f, [k]: v }))
@@ -20,6 +35,26 @@ export default function Settings() {
     await saveSettings(form)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
+  }
+
+  async function previewVoice(lang: 'en' | 'gr') {
+    const voiceId = lang === 'en' ? form.enVoiceId : form.grVoiceId
+    if (!voiceId || previewing) return
+    setPreviewing(lang)
+    try {
+      let url = previewCacheRef.current.get(voiceId)
+      if (!url) {
+        const blob = await generateSpeech(PREVIEW_TEXT[lang], voiceId)
+        url = URL.createObjectURL(blob)
+        previewCacheRef.current.set(voiceId, url)
+      }
+      previewAudioRef.current.src = url
+      await previewAudioRef.current.play()
+    } catch {
+      showToast('Preview failed')
+    } finally {
+      setPreviewing(null)
+    }
   }
 
   return (
@@ -36,30 +71,58 @@ export default function Settings() {
           <div className={`card ${styles.card}`}>
             <div className={styles.row}>
               <span className={styles.rowLabel}>English voice</span>
-              <select
-                className={styles.select}
-                value={form.enVoiceId}
-                onChange={e => set('enVoiceId', e.target.value)}
-              >
-                <option value="">Select…</option>
-                {ENGLISH_VOICES.map(v => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
-              </select>
+              <div className={styles.voiceSelectGroup}>
+                <select
+                  className={styles.select}
+                  value={form.enVoiceId}
+                  onChange={e => set('enVoiceId', e.target.value)}
+                >
+                  <option value="">Select…</option>
+                  {ENGLISH_VOICES.map(v => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
+                  ))}
+                </select>
+                <button
+                  className={styles.previewBtn}
+                  disabled={!form.enVoiceId || previewing !== null}
+                  onClick={() => previewVoice('en')}
+                  aria-label="Preview English voice"
+                >
+                  {previewing === 'en' ? (
+                    <span className={styles.previewSpinner} />
+                  ) : (
+                    <svg width="10" height="12" viewBox="0 0 12 14" fill="var(--accent)"><polygon points="1 1 11 7 1 13" /></svg>
+                  )}
+                </button>
+              </div>
             </div>
             <div className="hairline" />
             <div className={styles.row}>
               <span className={styles.rowLabel}>Greek voice</span>
-              <select
-                className={styles.select}
-                value={form.grVoiceId}
-                onChange={e => set('grVoiceId', e.target.value)}
-              >
-                <option value="">Select…</option>
-                {GREEK_VOICES.map(v => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
-              </select>
+              <div className={styles.voiceSelectGroup}>
+                <select
+                  className={styles.select}
+                  value={form.grVoiceId}
+                  onChange={e => set('grVoiceId', e.target.value)}
+                >
+                  <option value="">Select…</option>
+                  {GREEK_VOICES.map(v => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
+                  ))}
+                </select>
+                <button
+                  className={styles.previewBtn}
+                  disabled={!form.grVoiceId || previewing !== null}
+                  onClick={() => previewVoice('gr')}
+                  aria-label="Preview Greek voice"
+                >
+                  {previewing === 'gr' ? (
+                    <span className={styles.previewSpinner} />
+                  ) : (
+                    <svg width="10" height="12" viewBox="0 0 12 14" fill="var(--accent)"><polygon points="1 1 11 7 1 13" /></svg>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

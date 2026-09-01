@@ -49,6 +49,35 @@
   max-width: 160px;
 }
 
+.voiceSelectGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.previewBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity .15s;
+}
+.previewBtn:disabled { opacity: .4; }
+
+.previewSpinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-light);
+  border-top-color: var(--accent);
+  animation: previewSpin .7s linear infinite;
+}
+@keyframes previewSpin { to { transform: rotate(360deg); } }
+
 .input {
   font-size: 14px;
   color: var(--ink-soft);
