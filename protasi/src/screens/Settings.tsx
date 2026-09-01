@@ -16,8 +16,11 @@ export default function Settings() {
   const [form, setForm] = useState<SettingsType>(state.settings)
   const [saved, setSaved] = useState(false)
   const [previewing, setPreviewing] = useState<'en' | 'gr' | null>(null)
+  const [showCustomPreview, setShowCustomPreview] = useState(false)
+  const [customPreview, setCustomPreview] = useState({ en: '', gr: '' })
   const previewAudioRef = useRef<HTMLAudioElement>(new Audio())
-  // Caches generated preview audio per voice so re-sampling the same voice is free
+  // Caches generated preview audio per voice+text so re-sampling is free, but a custom
+  // sample doesn't play back a stale recording made under the default phrase (or vice versa)
   const previewCacheRef = useRef<Map<string, string>>(new Map())
 
   useEffect(() => { setForm(state.settings) }, [state.settings])
@@ -31,6 +34,17 @@ export default function Settings() {
     setForm(f => ({ ...f, [k]: v }))
   }
 
+  // Voice choice feeds audio generation everywhere else in the app (Sentence Detail,
+  // QuickAdd's auto-narrate, etc.), all of which read the persisted setting, not this
+  // screen's draft — so unlike the other fields below, a voice pick must save immediately
+  // or every subsequent narration silently keeps using the old voice until "Save settings"
+  // happens to be tapped.
+  function setVoice(lang: 'en' | 'gr', voiceId: string) {
+    const updated = { ...form, [lang === 'en' ? 'enVoiceId' : 'grVoiceId']: voiceId }
+    setForm(updated)
+    saveSettings(updated).catch(() => showToast('Could not save voice'))
+  }
+
   async function handleSave() {
     await saveSettings(form)
     setSaved(true)
@@ -40,13 +54,15 @@ export default function Settings() {
   async function previewVoice(lang: 'en' | 'gr') {
     const voiceId = lang === 'en' ? form.enVoiceId : form.grVoiceId
     if (!voiceId || previewing) return
+    const text = customPreview[lang].trim() || PREVIEW_TEXT[lang]
+    const cacheKey = `${voiceId}:${text}`
     setPreviewing(lang)
     try {
-      let url = previewCacheRef.current.get(voiceId)
+      let url = previewCacheRef.current.get(cacheKey)
       if (!url) {
-        const blob = await generateSpeech(PREVIEW_TEXT[lang], voiceId)
+        const blob = await generateSpeech(text, voiceId)
         url = URL.createObjectURL(blob)
-        previewCacheRef.current.set(voiceId, url)
+        previewCacheRef.current.set(cacheKey, url)
       }
       previewAudioRef.current.src = url
       await previewAudioRef.current.play()
@@ -75,7 +91,7 @@ export default function Settings() {
                 <select
                   className={styles.select}
                   value={form.enVoiceId}
-                  onChange={e => set('enVoiceId', e.target.value)}
+                  onChange={e => setVoice('en', e.target.value)}
                 >
                   <option value="">Select…</option>
                   {ENGLISH_VOICES.map(v => (
@@ -103,7 +119,7 @@ export default function Settings() {
                 <select
                   className={styles.select}
                   value={form.grVoiceId}
-                  onChange={e => set('grVoiceId', e.target.value)}
+                  onChange={e => setVoice('gr', e.target.value)}
                 >
                   <option value="">Select…</option>
                   {GREEK_VOICES.map(v => (
@@ -124,6 +140,30 @@ export default function Settings() {
                 </button>
               </div>
             </div>
+
+            <div className="hairline" />
+            <button
+              className={styles.customPreviewToggle}
+              onClick={() => setShowCustomPreview(v => !v)}
+            >
+              {showCustomPreview ? 'Hide custom sample text' : 'Custom sample text…'}
+            </button>
+            {showCustomPreview && (
+              <div className={styles.customPreviewPanel}>
+                <input
+                  className={styles.customPreviewInput}
+                  placeholder={PREVIEW_TEXT.en}
+                  value={customPreview.en}
+                  onChange={e => setCustomPreview(c => ({ ...c, en: e.target.value }))}
+                />
+                <input
+                  className={`${styles.customPreviewInput} serif`}
+                  placeholder={PREVIEW_TEXT.gr}
+                  value={customPreview.gr}
+                  onChange={e => setCustomPreview(c => ({ ...c, gr: e.target.value }))}
+                />
+              </div>
+            )}
           </div>
         </div>
 

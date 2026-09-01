@@ -78,6 +78,33 @@
 }
 @keyframes previewSpin { to { transform: rotate(360deg); } }
 
+.customPreviewToggle {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  text-align: left;
+}
+
+.customPreviewPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px 14px;
+}
+
+.customPreviewInput {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  font-size: 14px;
+  color: var(--ink);
+}
+.customPreviewInput::placeholder { color: var(--ink-placeholder); }
+
 .input {
   font-size: 14px;
   color: var(--ink-soft);
