@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { adminAuth } from './_lib/firebaseAdmin'
+import { adminAuth } from './_lib/firebaseAdmin.js'
 
 // Internal one-off tool, not linked from any UI — sets the `invited` claim on an
 // existing account. Needed once during rollout to retrofit the pre-existing account

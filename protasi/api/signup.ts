@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getFirestore } from 'firebase-admin/firestore'
-import { adminAuth, getAdminApp } from './_lib/firebaseAdmin'
+import { adminAuth, getAdminApp } from './_lib/firebaseAdmin.js'
 
 // Mirrors DEFAULT_SETTINGS / DEFAULT_PROGRESS in src/store/index.tsx — kept in sync
 // manually since this runs server-side and can't import client store code.

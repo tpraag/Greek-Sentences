@@ -1,5 +1,5 @@
 import type { VercelRequest } from '@vercel/node'
-import { adminAuth } from './firebaseAdmin'
+import { adminAuth } from './firebaseAdmin.js'
 
 // Verifies the caller sent a valid Firebase ID token for an account that was
 // actually provisioned through our sign-up flow (carries the `invited` claim).
