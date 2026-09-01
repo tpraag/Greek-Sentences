@@ -1,8 +1,13 @@
 import type { LearningStatus, Sentence } from '../types'
 
 // Sentences saved before this feature existed have no learningStatus field — treat as 'new'.
+// 'good' was a status that existed briefly and has since been removed — fold any sentence
+// still carrying it into 'learning' rather than requiring a data migration.
 export function getLearningStatus(s: Sentence): LearningStatus {
-  return s.learningStatus ?? 'new'
+  const status = s.learningStatus as string | undefined
+  if (status === 'good') return 'learning'
+  if (status === 'new' || status === 'learning' || status === 'mastered') return status
+  return 'new'
 }
 
 export function isMastered(s: Sentence): boolean {
@@ -24,15 +29,13 @@ export function calcMasteryPoints(wordCount: number): number {
 export const STATUS_LABEL: Record<LearningStatus, string> = {
   new: 'New',
   learning: 'Learning',
-  good: 'Good',
   mastered: 'Mastered',
 }
 
 export const STATUS_COLOR: Record<LearningStatus, string> = {
   new: 'var(--ink-faint)',
   learning: 'var(--fav)',
-  good: 'var(--accent-light)',
   mastered: 'var(--accent)',
 }
 
-export const LEARNING_STATUSES: LearningStatus[] = ['new', 'learning', 'good', 'mastered']
+export const LEARNING_STATUSES: LearningStatus[] = ['new', 'learning', 'mastered']

@@ -16,7 +16,6 @@ import { getLearningStatus, countWords, calcMasteryPoints } from '../lib/mastery
 const DEFAULT_SETTINGS: Settings = {
   enVoiceId: '',
   grVoiceId: '',
-  savedVoices: [],
   order: 'en-gr',
   gapSeconds: 3,
   greekSpeed: 1.0,

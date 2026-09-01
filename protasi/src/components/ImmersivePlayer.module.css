@@ -76,7 +76,7 @@
 .primary {
   font-size: 26px;
   color: #fff;
-  line-height: 1.4;
+  line-height: 1.75;
   text-align: center;
 }
 
@@ -85,15 +85,25 @@
   color: rgba(255,255,255,.4);
   line-height: 1.4;
   text-align: center;
+  margin-top: 6px;
+}
+
+.wordStack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: top;
+  padding-bottom: 4px;
 }
 
 .phonetic {
-  font-size: 15px;
-  font-style: italic;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   color: var(--accent-light);
-  opacity: .7;
-  line-height: 1.4;
-  text-align: center;
+  opacity: .85;
+  line-height: 1.2;
+  margin-top: 2px;
 }
 
 .transport {
@@ -138,13 +148,13 @@
 .popoverTranslation { flex: 1; color: rgba(255,255,255,.85); font-weight: 500; }
 .popoverClose { color: rgba(255,255,255,.4); font-size: 13px; padding: 2px 4px; }
 
-/* Large, color-coded learning-status buttons — easy to hit while listening */
+/* Color-coded learning-status buttons, one row — easy to hit while listening */
 .statusGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 8px;
   width: 100%;
 }
+.statusGrid .statusBtn { flex: 1; }
 
 .statusBtn {
   padding: 11px 8px;

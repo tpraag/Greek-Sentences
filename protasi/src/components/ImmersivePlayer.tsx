@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useApp } from '../store'
 import { translateWordCached, normalizeWord } from '../lib/wordCache'
 import { getLearningStatus, LEARNING_STATUSES, STATUS_LABEL, STATUS_COLOR } from '../lib/mastery'
-import { transliterateGreek } from '../lib/transliterate'
 import MasteryConfirmSheet from './MasteryConfirmSheet'
+import InterlinearGreek from './InterlinearGreek'
 import type { PlaybackOrder, GreekSpeed, LearningStatus } from '../types'
 import styles from './ImmersivePlayer.module.css'
 
@@ -95,20 +95,17 @@ export default function ImmersivePlayer() {
             {/* Greek is always the primary text, on top — tap any word for its translation */}
             {current.gr ? (
               <p className={`${styles.primary} serif`} style={{ position: 'relative' }}>
-                {current.gr.split(/(\s+)/).map((token, i) =>
-                  /\s+/.test(token) ? token :
-                  <span
-                    key={i}
-                    className={styles.grWord}
-                    onClick={e => { e.stopPropagation(); handleWordTap(token) }}
-                  >{token}</span>
-                )}
+                <InterlinearGreek
+                  text={current.gr}
+                  showPhonetics={state.settings.showPhonetics}
+                  onWordTap={handleWordTap}
+                  stackClassName={styles.wordStack}
+                  wordClassName={styles.grWord}
+                  phoneticClassName={styles.phonetic}
+                />
               </p>
             ) : (
               <p className={styles.primary}>{current.en}</p>
-            )}
-            {current.gr && state.settings.showPhonetics && (
-              <p className={styles.phonetic}>{transliterateGreek(current.gr)}</p>
             )}
             {current.gr && (
               <p className={styles.secondary}>{current.en}</p>

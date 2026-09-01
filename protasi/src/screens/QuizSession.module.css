@@ -50,14 +50,28 @@
 .gr {
   font-size: 26px;
   color: #3A4A45;
-  line-height: 1.4;
+  line-height: 1.75;
+}
+
+.grWord {
+  /* revealed Greek isn't tap-to-translate here — just the interlinear word unit */
+}
+
+.wordStack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: top;
+  padding-bottom: 4px;
 }
 
 .phonetic {
-  font-size: 14px;
-  font-style: italic;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   color: var(--ink-muted);
-  margin-top: 6px;
+  line-height: 1.2;
+  margin-top: 2px;
 }
 
 .replayBtn {

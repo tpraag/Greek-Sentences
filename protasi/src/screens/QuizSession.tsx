@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../store'
-import { transliterateGreek } from '../lib/transliterate'
+import InterlinearGreek from '../components/InterlinearGreek'
 import type { Sentence, QuizResult } from '../types'
 import styles from './QuizSession.module.css'
 
@@ -82,7 +82,7 @@ export default function QuizSession({ sentences, onExit }: Props) {
   }
 
   function downgrade() {
-    setLearningStatus(sentence.id, sentence.collectionId, 'good')
+    setLearningStatus(sentence.id, sentence.collectionId, 'learning')
     next()
   }
 
@@ -113,9 +113,16 @@ export default function QuizSession({ sentences, onExit }: Props) {
             <>
               <div className="hairline" style={{ margin: '24px 0' }} />
               <div className={styles.label}>Ελληνικά</div>
-              <p className={`${styles.gr} serif`}>{sentence.gr}</p>
-              {state.settings.showPhonetics && sentence.gr && (
-                <p className={styles.phonetic}>{transliterateGreek(sentence.gr)}</p>
+              {sentence.gr && (
+                <p className={`${styles.gr} serif`}>
+                  <InterlinearGreek
+                    text={sentence.gr}
+                    showPhonetics={state.settings.showPhonetics}
+                    stackClassName={styles.wordStack}
+                    wordClassName={styles.grWord}
+                    phoneticClassName={styles.phonetic}
+                  />
+                </p>
               )}
               <button className={styles.replayBtn} onClick={playGr}>
                 <svg width="12" height="14" viewBox="0 0 14 16" fill="currentColor"><polygon points="1 1 13 8 1 15" /></svg>
@@ -130,9 +137,9 @@ export default function QuizSession({ sentences, onExit }: Props) {
                 </div>
               ) : rated === 'incorrect' ? (
                 <div className={styles.downgradePanel}>
-                  <p className={styles.downgradeText}>Move this sentence back to Good?</p>
+                  <p className={styles.downgradeText}>Move this sentence back to Learning?</p>
                   <div className={styles.downgradeRow}>
-                    <button className="btn-outline" onClick={downgrade}>Move back to Good</button>
+                    <button className="btn-outline" onClick={downgrade}>Move back to Learning</button>
                     <button className="btn-accent" onClick={next}>Keep as Mastered</button>
                   </div>
                 </div>

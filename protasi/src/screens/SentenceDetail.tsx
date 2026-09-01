@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { useApp } from '../store'
 import { translateWordCached, normalizeWord } from '../lib/wordCache'
 import LearningStatusControl from '../components/LearningStatusControl'
-import { transliterateGreek } from '../lib/transliterate'
+import InterlinearGreek from '../components/InterlinearGreek'
 import type { GreekSpeed, LearningStatus } from '../types'
 import styles from './SentenceDetail.module.css'
 
@@ -193,18 +193,15 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack }: Pro
           ) : sentence.gr ? (
             <div style={{ position: 'relative' }}>
               <p className={`${styles.gr} serif`} onClick={() => setPopover(null)}>
-                {sentence.gr.split(/(\s+)/).map((token, i) =>
-                  /\s+/.test(token) ? token :
-                  <span
-                    key={i}
-                    className={styles.grWord}
-                    onClick={e => { e.stopPropagation(); handleWordTap(token) }}
-                  >{token}</span>
-                )}
+                <InterlinearGreek
+                  text={sentence.gr}
+                  showPhonetics={state.settings.showPhonetics}
+                  onWordTap={handleWordTap}
+                  stackClassName={styles.wordStack}
+                  wordClassName={styles.grWord}
+                  phoneticClassName={styles.phonetic}
+                />
               </p>
-              {state.settings.showPhonetics && (
-                <p className={styles.phonetic}>{transliterateGreek(sentence.gr)}</p>
-              )}
               {popover && (
                 <div ref={popoverRef} className={styles.popover}>
                   <span className={styles.popoverWord}>{popover.word}</span>

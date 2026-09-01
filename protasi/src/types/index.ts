@@ -71,7 +71,7 @@ export const ICON_GROUPS: { label: string; icons: IconName[] }[] = [
   { label: 'General',         icons: ['folder', 'tag', 'bookmark', 'message', 'phone', 'mail'] },
 ]
 
-export type LearningStatus = 'new' | 'learning' | 'good' | 'mastered'
+export type LearningStatus = 'new' | 'learning' | 'mastered'
 export type QuizResult = 'correct' | 'almost' | 'incorrect'
 
 export interface Sentence {
@@ -117,15 +117,9 @@ export type PlaybackOrder = 'en' | 'gr' | 'en-gr' | 'gr-en'
 export type PlayerView = 'compact' | 'immersive'
 export type GreekSpeed = 0.7 | 0.85 | 1.0
 
-export interface SavedVoice {
-  id: string        // ElevenLabs voice_id
-  name: string      // user-given nickname
-}
-
 export interface Settings {
   enVoiceId: string
   grVoiceId: string
-  savedVoices: SavedVoice[]
   order: PlaybackOrder
   gapSeconds: number
   greekSpeed: GreekSpeed

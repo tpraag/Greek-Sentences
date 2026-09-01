@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useApp } from '../store'
 import NewCollectionPanel from '../components/NewCollectionPanel'
 import type { IconName, CollectionColor } from '../types'
@@ -15,16 +15,24 @@ export default function QuickAdd({ onClose, onSaved, defaultCollectionId }: Prop
   const [text, setText] = useState('')
   const [selectedCol, setSelectedCol] = useState<string | null>(defaultCollectionId ?? null)
 
+  // Once the user (or the new-collection flow below) has explicitly chosen a collection,
+  // the auto-select effect must never override it — even if it re-fires from a
+  // state.collections update that lands before the explicit choice's own render commits.
+  const userPickedRef = useRef(false)
+  function chooseCollection(id: string) {
+    userPickedRef.current = true
+    setSelectedCol(id)
+  }
+
   // Preselect the collection the user is currently in, else the first real one
   useEffect(() => {
-    if (!selectedCol) {
-      if (defaultCollectionId && state.collections.some(c => c.id === defaultCollectionId)) {
-        setSelectedCol(defaultCollectionId)
-        return
-      }
-      const first = state.collections.find(c => !c.id.startsWith('temp-'))
-      if (first) setSelectedCol(first.id)
+    if (userPickedRef.current || selectedCol) return
+    if (defaultCollectionId && state.collections.some(c => c.id === defaultCollectionId)) {
+      chooseCollection(defaultCollectionId)
+      return
     }
+    const first = state.collections.find(c => !c.id.startsWith('temp-'))
+    if (first) chooseCollection(first.id)
   }, [state.collections])
   const [showNew, setShowNew] = useState(false)
 
@@ -46,7 +54,7 @@ export default function QuickAdd({ onClose, onSaved, defaultCollectionId }: Prop
 
   async function handleNewCollection(name: string, icon: IconName, color: CollectionColor) {
     const col = await createCollection({ name, icon, color, createdAt: Date.now() })
-    setSelectedCol(col.id)
+    chooseCollection(col.id)
     setShowNew(false)
   }
 
@@ -82,7 +90,7 @@ export default function QuickAdd({ onClose, onSaved, defaultCollectionId }: Prop
                 <button
                   key={col.id}
                   className={`chip ${selectedCol === col.id ? 'active' : ''}`}
-                  onClick={() => setSelectedCol(col.id)}
+                  onClick={() => chooseCollection(col.id)}
                 >
                   {col.name}
                 </button>
