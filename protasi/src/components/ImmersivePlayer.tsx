@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useApp } from '../store'
 import { translateWordCached, normalizeWord } from '../lib/wordCache'
 import { getLearningStatus, LEARNING_STATUSES, STATUS_LABEL, STATUS_COLOR } from '../lib/mastery'
+import { transliterateGreek } from '../lib/transliterate'
 import MasteryConfirmSheet from './MasteryConfirmSheet'
 import type { PlaybackOrder, GreekSpeed, LearningStatus } from '../types'
 import styles from './ImmersivePlayer.module.css'
@@ -105,6 +106,9 @@ export default function ImmersivePlayer() {
               </p>
             ) : (
               <p className={styles.primary}>{current.en}</p>
+            )}
+            {current.gr && state.settings.showPhonetics && (
+              <p className={styles.phonetic}>{transliterateGreek(current.gr)}</p>
             )}
             {current.gr && (
               <p className={styles.secondary}>{current.en}</p>

@@ -24,6 +24,7 @@ const DEFAULT_SETTINGS: Settings = {
   defaultPlayerView: 'compact',
   autoTranslate: true,
   autoNarrate: true,
+  showPhonetics: true,
 }
 
 const DEFAULT_PROGRESS: UserProgress = {

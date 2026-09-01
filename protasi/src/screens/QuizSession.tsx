@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../store'
+import { transliterateGreek } from '../lib/transliterate'
 import type { Sentence, QuizResult } from '../types'
 import styles from './QuizSession.module.css'
 
@@ -113,6 +114,9 @@ export default function QuizSession({ sentences, onExit }: Props) {
               <div className="hairline" style={{ margin: '24px 0' }} />
               <div className={styles.label}>Ελληνικά</div>
               <p className={`${styles.gr} serif`}>{sentence.gr}</p>
+              {state.settings.showPhonetics && sentence.gr && (
+                <p className={styles.phonetic}>{transliterateGreek(sentence.gr)}</p>
+              )}
               <button className={styles.replayBtn} onClick={playGr}>
                 <svg width="12" height="14" viewBox="0 0 14 16" fill="currentColor"><polygon points="1 1 13 8 1 15" /></svg>
                 Play again

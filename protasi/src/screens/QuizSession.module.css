@@ -53,6 +53,13 @@
   line-height: 1.4;
 }
 
+.phonetic {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--ink-muted);
+  margin-top: 6px;
+}
+
 .replayBtn {
   display: flex;
   align-items: center;

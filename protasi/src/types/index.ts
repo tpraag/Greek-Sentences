@@ -133,6 +133,7 @@ export interface Settings {
   defaultPlayerView: PlayerView
   autoTranslate: boolean
   autoNarrate: boolean
+  showPhonetics: boolean   // show a Latin phonetic line beneath Greek text
 }
 
 export interface PlaybackState {

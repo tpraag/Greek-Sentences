@@ -87,6 +87,15 @@
   text-align: center;
 }
 
+.phonetic {
+  font-size: 15px;
+  font-style: italic;
+  color: var(--accent-light);
+  opacity: .7;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .transport {
   display: flex;
   align-items: center;

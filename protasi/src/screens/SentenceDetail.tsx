@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useApp } from '../store'
 import { translateWordCached, normalizeWord } from '../lib/wordCache'
 import LearningStatusControl from '../components/LearningStatusControl'
+import { transliterateGreek } from '../lib/transliterate'
 import type { GreekSpeed, LearningStatus } from '../types'
 import styles from './SentenceDetail.module.css'
 
@@ -201,6 +202,9 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack }: Pro
                   >{token}</span>
                 )}
               </p>
+              {state.settings.showPhonetics && (
+                <p className={styles.phonetic}>{transliterateGreek(sentence.gr)}</p>
+              )}
               {popover && (
                 <div ref={popoverRef} className={styles.popover}>
                   <span className={styles.popoverWord}>{popover.word}</span>

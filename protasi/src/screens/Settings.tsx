@@ -139,6 +139,20 @@ export default function Settings() {
           </div>
         </div>
 
+        {/* Greek text display */}
+        <div className={styles.group}>
+          <div className="label" style={{ marginBottom: 8 }}>Greek text</div>
+          <div className={`card ${styles.card}`}>
+            <div className={styles.row}>
+              <span className={styles.rowLabel}>Phonetic (Latin) subtitles</span>
+              <label className="switch">
+                <input type="checkbox" checked={form.showPhonetics ?? true} onChange={e => set('showPhonetics', e.target.checked)} />
+                <div className="switch-track" />
+              </label>
+            </div>
+          </div>
+        </div>
+
         {/* Playback defaults */}
         <div className={styles.group}>
           <div className="label" style={{ marginBottom: 8 }}>Playback defaults</div>
