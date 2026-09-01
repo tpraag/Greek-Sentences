@@ -33,7 +33,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if ((await progressRef.get()).exists) { await progressRef.delete(); deleted.progress = true }
 
   try {
-    const bucket = getStorage(app).bucket()
+    // getStorage(app).bucket() with no argument guesses the default <project-id>.appspot.com
+    // bucket name, which doesn't match this project's actual bucket.
+    const bucket = getStorage(app).bucket('protasi-eu.firebasestorage.app')
     const [files] = await bucket.getFiles({ prefix: 'audio/' })
     await Promise.all(files.map(f => f.delete().catch(() => {})))
     deleted.audioFiles = files.length
