@@ -12,7 +12,7 @@ const DEFAULT_SETTINGS = {
   gapSeconds: 3,
   greekSpeed: 1.0,
   sentenceRepeat: 1,
-  defaultPlayerView: 'compact',
+  defaultPlayerView: 'immersive',
   autoTranslate: true,
   autoNarrate: true,
   showPhonetics: true,
