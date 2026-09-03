@@ -1,14 +1,16 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Per-user data — only the owning, invited account can read/write its own tree.
-    // The `invited` custom claim is set exclusively by api/signup.ts and
-    // api/admin-grant.ts (Admin SDK), so a stray account created some other way
-    // (bypassing our sign-up endpoint's invite-code check) has zero access here.
+    // Per-user data — only the owning account, provisioned through our sign-up flow
+    // (`invited`) AND manually approved by an admin (`approved`), can read/write its
+    // own tree. Both claims are set exclusively via the Admin SDK (api/signup.ts,
+    // api/admin-approve.ts, api/admin-grant.ts), so a stray account created some other
+    // way — or one still waiting on approval — has zero access here.
     match /users/{uid}/{document=**} {
       allow read, write: if request.auth != null
         && request.auth.uid == uid
-        && request.auth.token.invited == true;
+        && request.auth.token.invited == true
+        && request.auth.token.approved == true;
     }
   }
 }

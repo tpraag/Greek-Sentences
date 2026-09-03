@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { User } from 'firebase/auth'
 import { AppProvider, useApp } from './store'
 import { isFirebaseConfigured } from './lib/firebase'
-import { subscribeAuth } from './lib/auth'
+import { subscribeAuth, getUserClaims, type UserClaims } from './lib/auth'
 import Login from './components/Login'
+import PendingApproval from './components/PendingApproval'
 import Library from './screens/Library'
 import CollectionView from './screens/CollectionView'
 import SentenceDetail from './screens/SentenceDetail'
@@ -32,15 +33,30 @@ function AppInner() {
 
   // Auth gate: undefined = still checking, null = signed out, User = signed in
   const [authUser, setAuthUser] = useState<User | null | undefined>(undefined)
+  const [claims, setClaims] = useState<UserClaims | null>(null)
   useEffect(() => {
     if (!isFirebaseConfigured) { setAuthUser(null); return }
     return subscribeAuth(u => setAuthUser(u))
   }, [])
 
+  const refreshClaims = useCallback(async (forceRefresh = false) => {
+    if (!authUser) return
+    setClaims(await getUserClaims(authUser, forceRefresh))
+  }, [authUser])
+
+  useEffect(() => {
+    if (authUser) refreshClaims()
+    else setClaims(null)
+  }, [authUser, refreshClaims])
+
   // While auth state is unknown, render nothing (avoids a login-screen flash on reload)
   if (isFirebaseConfigured && authUser === undefined) return null
   // Signed out → show the password screen
   if (isFirebaseConfigured && !authUser) return <Login />
+  // Signed in but not yet approved by an admin — no app data is reachable until then anyway
+  if (isFirebaseConfigured && authUser && claims && !claims.approved) {
+    return <PendingApproval email={authUser.email} onCheckAgain={() => refreshClaims(true)} />
+  }
 
   function goToCollection(id: string) {
     setNav({ tab: 'library', collectionId: id, sentenceId: null, screen: null })
@@ -79,7 +95,7 @@ function AppInner() {
       ) : nav.tab === 'library' ? (
         <Library onOpen={goToCollection} onProgress={goToProgress} />
       ) : (
-        <Settings />
+        <Settings isAdmin={claims?.admin ?? false} />
       )}
 
       {quickAdd && (

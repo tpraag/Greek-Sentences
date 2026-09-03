@@ -2,6 +2,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  getIdTokenResult,
   type User,
 } from 'firebase/auth'
 import { auth } from './firebase'
@@ -32,4 +33,21 @@ export async function signUp(email: string, password: string, inviteCode: string
 
 export async function signOutUser(): Promise<void> {
   await signOut(auth)
+}
+
+export interface UserClaims {
+  invited: boolean
+  approved: boolean
+  admin: boolean
+}
+
+// forceRefresh bypasses the cached ID token — needed after an admin approves someone,
+// since the claim change won't otherwise show up client-side for up to an hour.
+export async function getUserClaims(user: User, forceRefresh = false): Promise<UserClaims> {
+  const result = await getIdTokenResult(user, forceRefresh)
+  return {
+    invited: result.claims.invited === true,
+    approved: result.claims.approved === true,
+    admin: result.claims.admin === true,
+  }
 }

@@ -3,6 +3,7 @@ import { useApp } from '../store'
 import { signOutUser } from '../lib/auth'
 import { generateSpeech } from '../lib/api'
 import { GREEK_VOICES, ENGLISH_VOICES } from '../lib/voices'
+import AdminApprovals from './AdminApprovals'
 import type { Settings as SettingsType, PlaybackOrder, PlayerView, GreekSpeed } from '../types'
 import styles from './Settings.module.css'
 
@@ -11,8 +12,13 @@ const PREVIEW_TEXT = {
   gr: 'Γεια σου! Αυτή είναι μια σύντομη δοκιμή της φωνής μου.',
 }
 
-export default function Settings() {
+interface Props {
+  isAdmin: boolean
+}
+
+export default function Settings({ isAdmin }: Props) {
   const { state, saveSettings, showToast } = useApp()
+  const [showApprovals, setShowApprovals] = useState(false)
   const [form, setForm] = useState<SettingsType>(state.settings)
   const [saved, setSaved] = useState(false)
   const [previewing, setPreviewing] = useState<'en' | 'gr' | null>(null)
@@ -73,6 +79,10 @@ export default function Settings() {
     }
   }
 
+  if (showApprovals) {
+    return <AdminApprovals onBack={() => setShowApprovals(false)} />
+  }
+
   return (
     <div className="screen-scroll">
       <div className={styles.header}>
@@ -80,6 +90,18 @@ export default function Settings() {
       </div>
 
       <div className={styles.body}>
+
+        {isAdmin && (
+          <div className={styles.group}>
+            <div className="label" style={{ marginBottom: 8 }}>Admin</div>
+            <button className={`card ${styles.card} ${styles.row}`} style={{ width: '100%' }} onClick={() => setShowApprovals(true)}>
+              <span className={styles.rowLabel}>Pending sign-ups</span>
+              <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="1 1 7 7 1 13" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Voice selection — curated lists, not user-managed */}
         <div className={styles.group}>

@@ -51,3 +51,27 @@ export async function listElevenLabsVoices(): Promise<{ voice_id: string; name: 
   const data = await res.json()
   return data.voices ?? []
 }
+
+export interface PendingSignup {
+  uid: string
+  email: string | undefined
+  createdAt: string
+}
+
+// Admin-only — see api/admin-pending.ts / api/admin-approve.ts. Rejected by the server
+// for any account without the `admin` claim, regardless of what these return client-side.
+export async function listPendingSignups(): Promise<PendingSignup[]> {
+  const res = await fetch('/api/admin-pending', { headers: await authHeaders() })
+  if (!res.ok) throw new Error('Failed to load pending sign-ups')
+  const data = await res.json()
+  return data.pending ?? []
+}
+
+export async function approveSignup(uid: string, action: 'approve' | 'reject'): Promise<void> {
+  const res = await fetch('/api/admin-approve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+    body: JSON.stringify({ uid, action }),
+  })
+  if (!res.ok) throw new Error('Failed to update sign-up')
+}

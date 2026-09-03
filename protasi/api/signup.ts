@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getFirestore } from 'firebase-admin/firestore'
 import { adminAuth, getAdminApp } from './_lib/firebaseAdmin.js'
+import { notifyAdmin } from './_lib/notify.js'
 
 // Mirrors DEFAULT_SETTINGS / DEFAULT_PROGRESS in src/store/index.tsx — kept in sync
 // manually since this runs server-side and can't import client store code.
@@ -20,8 +21,10 @@ const DEFAULT_PROGRESS = { lifetimeMasteryPoints: 0 }
 
 // Account creation happens here, server-side, rather than via the client Firebase SDK
 // directly — that's what makes the invite code an actual gate rather than just a UI
-// suggestion. Also sets the `invited` custom claim that every security rule and every
-// other paid API route checks before allowing anything.
+// suggestion. Sets the `invited` custom claim (proves the account came through this
+// flow) but deliberately NOT `approved` — every security rule and paid API route
+// requires both, so a fresh sign-up can authenticate but has zero access until an
+// admin approves it (api/admin-approve.ts).
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).end()
 
@@ -41,7 +44,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await db.doc(`users/${user.uid}/app/settings`).set(DEFAULT_SETTINGS)
     await db.doc(`users/${user.uid}/app/progress`).set(DEFAULT_PROGRESS)
 
-    res.json({ ok: true })
+    // Awaited (notifyAdmin never throws) — a serverless function can be frozen the
+    // instant the response is sent, so a truly fire-and-forget call here risks never
+    // actually completing.
+    await notifyAdmin(
+      'Protasi: new sign-up pending approval',
+      `${email} just signed up and is waiting for approval.\n\nOpen the app and go to Settings → Pending sign-ups to approve or reject.`
+    )
+
+    res.json({ ok: true, pending: true })
   } catch (e) {
     const code = (e as { errorInfo?: { code?: string }; code?: string })?.errorInfo?.code
       ?? (e as { code?: string })?.code
