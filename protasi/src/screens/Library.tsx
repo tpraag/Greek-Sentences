@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useApp } from '../store'
 import CollectionIcon from '../components/CollectionIcon'
 import NewCollectionPanel from '../components/NewCollectionPanel'
+import SentenceSearch from './SentenceSearch'
 import { isMastered } from '../lib/mastery'
 import type { IconName, CollectionColor } from '../types'
 import styles from './Library.module.css'
@@ -9,11 +10,13 @@ import styles from './Library.module.css'
 interface Props {
   onOpen: (id: string) => void
   onProgress: () => void
+  onSentence: (collectionId: string, sentenceId: string) => void
 }
 
-export default function Library({ onOpen, onProgress }: Props) {
+export default function Library({ onOpen, onProgress, onSentence }: Props) {
   const { state, createCollection } = useApp()
   const [showNew, setShowNew] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
   const [search, setSearch] = useState('')
 
   const { collections, sentences } = state
@@ -30,10 +33,21 @@ export default function Library({ onOpen, onProgress }: Props) {
     createCollection({ name, icon, color, createdAt: Date.now() })
   }
 
+  if (showSearch) {
+    return <SentenceSearch onBack={() => setShowSearch(false)} onSentence={onSentence} />
+  }
+
   return (
     <div className="screen-scroll">
       <div className={styles.header}>
-        <h1 className={styles.title}>Library</h1>
+        <div className={styles.titleRow}>
+          <h1 className={styles.title}>Library</h1>
+          <button className={styles.searchBtn} onClick={() => setShowSearch(true)} aria-label="Search sentences">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+        </div>
         <p className={styles.sub}>
           {totalSentences} sentence{totalSentences !== 1 ? 's' : ''} · {collections.length} collection{collections.length !== 1 ? 's' : ''}
         </p>

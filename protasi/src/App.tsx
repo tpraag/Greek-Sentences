@@ -73,6 +73,11 @@ function AppInner() {
   function goToProgress() {
     setNav(n => ({ ...n, screen: 'progress' }))
   }
+  // From sentence search — jumps straight into a sentence without visiting its
+  // collection first, unlike goToSentence which assumes collectionId is already set.
+  function goToSentenceDirect(collectionId: string, sentenceId: string) {
+    setNav({ tab: 'library', collectionId, sentenceId, screen: null })
+  }
 
   const showTabBar = !quickAdd && !nav.screen && !(state.playback.active && state.playback.view === 'immersive')
 
@@ -93,7 +98,7 @@ function AppInner() {
           onSentence={goToSentence}
         />
       ) : nav.tab === 'library' ? (
-        <Library onOpen={goToCollection} onProgress={goToProgress} />
+        <Library onOpen={goToCollection} onProgress={goToProgress} onSentence={goToSentenceDirect} />
       ) : (
         <Settings isAdmin={claims?.admin ?? false} />
       )}

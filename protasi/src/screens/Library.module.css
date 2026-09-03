@@ -2,12 +2,33 @@
   padding: 60px 24px 20px;
 }
 
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
 .title {
   font-size: 30px;
   font-weight: 700;
   color: var(--ink);
-  margin-bottom: 4px;
 }
+
+.searchBtn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--accent-tint);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity .15s;
+}
+.searchBtn:active { opacity: .7; }
 
 .sub {
   font-size: 14px;
