@@ -1,16 +1,19 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { getFirestore } from 'firebase-admin/firestore'
-import { adminAuth, getAdminApp } from './_lib/firebaseAdmin.js'
+import { adminAuth } from './_lib/firebaseAdmin.js'
 import { requireAdmin } from './_lib/verifyAuth.js'
+import { deleteUserData } from './_lib/deleteUserData.js'
 
-// Approves or rejects a pending sign-up. Gated by the caller's own `admin` claim.
+// Approves, rejects, or deletes an account. Gated by the caller's own `admin` claim.
+// 'reject' and 'delete' are the same underlying operation (full removal) — kept as
+// separate action names for clarity at the call site (rejecting a pending sign-up vs.
+// deleting an already-active account with real content).
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).end()
   if (!(await requireAdmin(req))) return res.status(401).json({ error: 'Unauthorized' })
 
-  const { uid, action } = req.body as { uid?: string; action?: 'approve' | 'reject' }
-  if (!uid || (action !== 'approve' && action !== 'reject')) {
-    return res.status(400).json({ error: 'Provide uid and action ("approve" or "reject")' })
+  const { uid, action } = req.body as { uid?: string; action?: 'approve' | 'reject' | 'delete' }
+  if (!uid || !['approve', 'reject', 'delete'].includes(action ?? '')) {
+    return res.status(400).json({ error: 'Provide uid and action ("approve", "reject", or "delete")' })
   }
 
   try {
@@ -18,11 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const user = await adminAuth().getUser(uid)
       await adminAuth().setCustomUserClaims(uid, { ...user.customClaims, approved: true })
     } else {
-      // Reject — remove the account and the two placeholder docs signup.ts seeded for it.
-      await adminAuth().deleteUser(uid)
-      const db = getFirestore(getAdminApp())
-      await db.doc(`users/${uid}/app/settings`).delete()
-      await db.doc(`users/${uid}/app/progress`).delete()
+      await deleteUserData(uid)
     }
     res.json({ ok: true })
   } catch (e) {

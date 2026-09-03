@@ -95,7 +95,7 @@ export default function Settings({ isAdmin }: Props) {
           <div className={styles.group}>
             <div className="label" style={{ marginBottom: 8 }}>Admin</div>
             <button className={`card ${styles.card} ${styles.row}`} style={{ width: '100%' }} onClick={() => setShowApprovals(true)}>
-              <span className={styles.rowLabel}>Pending sign-ups</span>
+              <span className={styles.rowLabel}>Accounts</span>
               <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="1 1 7 7 1 13" />
               </svg>

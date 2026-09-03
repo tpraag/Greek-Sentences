@@ -52,26 +52,31 @@ export async function listElevenLabsVoices(): Promise<{ voice_id: string; name: 
   return data.voices ?? []
 }
 
-export interface PendingSignup {
+export interface AccountSummary {
   uid: string
   email: string | undefined
   createdAt: string
 }
 
-// Admin-only — see api/admin-pending.ts / api/admin-approve.ts. Rejected by the server
-// for any account without the `admin` claim, regardless of what these return client-side.
-export async function listPendingSignups(): Promise<PendingSignup[]> {
-  const res = await fetch('/api/admin-pending', { headers: await authHeaders() })
-  if (!res.ok) throw new Error('Failed to load pending sign-ups')
-  const data = await res.json()
-  return data.pending ?? []
+export interface AccountLists {
+  pending: AccountSummary[]
+  active: AccountSummary[]
 }
 
-export async function approveSignup(uid: string, action: 'approve' | 'reject'): Promise<void> {
+// Admin-only — see api/admin-pending.ts / api/admin-approve.ts. Rejected by the server
+// for any account without the `admin` claim, regardless of what these return client-side.
+export async function listAccounts(): Promise<AccountLists> {
+  const res = await fetch('/api/admin-pending', { headers: await authHeaders() })
+  if (!res.ok) throw new Error('Failed to load accounts')
+  const data = await res.json()
+  return { pending: data.pending ?? [], active: data.active ?? [] }
+}
+
+export async function updateAccount(uid: string, action: 'approve' | 'reject' | 'delete'): Promise<void> {
   const res = await fetch('/api/admin-approve', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
     body: JSON.stringify({ uid, action }),
   })
-  if (!res.ok) throw new Error('Failed to update sign-up')
+  if (!res.ok) throw new Error('Failed to update account')
 }

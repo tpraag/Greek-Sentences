@@ -49,7 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // actually completing.
     await notifyAdmin(
       'Protasi: new sign-up pending approval',
-      `${email} just signed up and is waiting for approval.\n\nOpen the app and go to Settings → Pending sign-ups to approve or reject.`
+      `${email} just signed up and is waiting for approval.\n\nOpen the app and go to Settings → Accounts to approve or reject.`
     )
 
     res.json({ ok: true, pending: true })
