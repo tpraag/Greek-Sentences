@@ -22,6 +22,8 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
   const [renameVal, setRenameVal] = useState('')
   const [iconSheet, setIconSheet] = useState(false)
   const [playSetup, setPlaySetup] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [query, setQuery] = useState('')
 
   const col = state.collections.find(c => c.id === collectionId)
   const sentences = state.sentences[collectionId] ?? []
@@ -55,6 +57,16 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
 
   const translated = sentences.filter(s => s.gr)
   const masteredCount = sentences.filter(isMastered).length
+
+  const q = query.trim().toLowerCase()
+  const visibleSentences = q
+    ? sentences.filter(s => s.en.toLowerCase().includes(q) || (s.gr ?? '').toLowerCase().includes(q))
+    : sentences
+
+  function closeSearch() {
+    setSearchOpen(false)
+    setQuery('')
+  }
 
   function handlePlayAll() {
     setPlaySetup(true)
@@ -117,7 +129,14 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
               <h2 className={styles.title}>{col.name}</h2>
             )}
           </div>
-          <button className={styles.menuBtn} onClick={() => setMenuOpen(true)}>•••</button>
+          <div className={styles.headerActions}>
+            <button className={styles.iconBtn} onClick={() => setSearchOpen(v => !v)} aria-label="Search sentences">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </button>
+            <button className={styles.menuBtn} onClick={() => setMenuOpen(true)}>•••</button>
+          </div>
         </div>
         <p className={styles.sub}>
           {sentences.length} sentence{sentences.length !== 1 ? 's' : ''} · {translated.length} translated
@@ -126,6 +145,21 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
         {sentences.length > 0 && (
           <div className={styles.masteryBar}>
             <div className={styles.masteryBarFill} style={{ width: `${(masteredCount / sentences.length) * 100}%` }} />
+          </div>
+        )}
+        {searchOpen && (
+          <div className={styles.searchWrap}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+              className={styles.search}
+              placeholder="Search this collection"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              autoFocus
+            />
+            <button className={styles.searchClear} onClick={closeSearch} aria-label="Close search">✕</button>
           </div>
         )}
       </div>
@@ -151,7 +185,7 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
       {/* Sentence list */}
       <div className={`screen-scroll ${state.playback.active ? 'with-player' : ''}`} style={{ paddingTop: 0 }}>
         <div className={styles.list}>
-          {sentences.map(s => {
+          {visibleSentences.map(s => {
             const isPlaying = state.playback.active && state.playback.queue[state.playback.qpos] === s.id
             return (
               <SwipeToDelete key={s.id} onDelete={() => deleteSentence(s.id, collectionId)}>
@@ -206,8 +240,10 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
               </SwipeToDelete>
             )
           })}
-          {sentences.length === 0 && (
-            <p className={styles.empty}>No sentences yet. Tap + to add one.</p>
+          {visibleSentences.length === 0 && (
+            <p className={styles.empty}>
+              {q ? `No sentences match "${query.trim()}".` : 'No sentences yet. Tap + to add one.'}
+            </p>
           )}
         </div>
       </div>
