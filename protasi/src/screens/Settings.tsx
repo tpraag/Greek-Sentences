@@ -5,6 +5,7 @@ import { generateSpeech } from '../lib/api'
 import { getAudioCacheStats, clearAudioCache } from '../lib/audioCache'
 import { GREEK_VOICES, ENGLISH_VOICES } from '../lib/voices'
 import AdminApprovals from './AdminApprovals'
+import ConfirmSheet from '../components/ConfirmSheet'
 import type { Settings as SettingsType, PlaybackOrder, GreekSpeed } from '../types'
 import styles from './Settings.module.css'
 
@@ -28,6 +29,7 @@ export default function Settings({ isAdmin }: Props) {
   const [form, setForm] = useState<SettingsType>(state.settings)
   const [cacheStats, setCacheStats] = useState<{ count: number; bytes: number } | null>(null)
   const [clearing, setClearing] = useState(false)
+  const [confirming, setConfirming] = useState<'clear' | 'signout' | null>(null)
   const [previewing, setPreviewing] = useState<'en' | 'gr' | null>(null)
   const [showCustomPreview, setShowCustomPreview] = useState(false)
   const [customPreview, setCustomPreview] = useState({ en: '', gr: '' })
@@ -46,7 +48,7 @@ export default function Settings({ isAdmin }: Props) {
   }, [])
 
   async function handleClearAudio() {
-    if (!confirm('Delete all downloaded audio from this device? Your sentences stay saved, and audio can be downloaded again.')) return
+    setConfirming(null)
     setClearing(true)
     try {
       await clearAudioCache()
@@ -334,7 +336,7 @@ export default function Settings({ isAdmin }: Props) {
                 className="btn-outline"
                 style={{ width: 'auto', padding: '8px 16px', color: 'var(--destructive)', borderColor: 'var(--destructive)' }}
                 disabled={clearing || !cacheStats?.count}
-                onClick={handleClearAudio}
+                onClick={() => setConfirming('clear')}
               >
                 Clear
               </button>
@@ -345,11 +347,32 @@ export default function Settings({ isAdmin }: Props) {
         <button
           className="btn-outline"
           style={{ marginTop: 12, color: 'var(--destructive)', borderColor: 'var(--destructive)' }}
-          onClick={() => { if (confirm('Sign out of this device? You’ll need your password to get back in.')) signOutUser() }}
+          onClick={() => setConfirming('signout')}
         >
           Sign out
         </button>
       </div>
+
+      {confirming === 'clear' && (
+        <ConfirmSheet
+          title="Clear downloaded audio?"
+          message="This removes the audio saved on this device. Your sentences stay saved, and audio can be downloaded again."
+          confirmLabel="Clear audio"
+          destructive
+          onConfirm={handleClearAudio}
+          onCancel={() => setConfirming(null)}
+        />
+      )}
+      {confirming === 'signout' && (
+        <ConfirmSheet
+          title="Sign out of this device?"
+          message="You’ll need your password to get back in."
+          confirmLabel="Sign out"
+          destructive
+          onConfirm={() => { setConfirming(null); signOutUser() }}
+          onCancel={() => setConfirming(null)}
+        />
+      )}
     </div>
   )
 }
