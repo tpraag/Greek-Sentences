@@ -1,0 +1,162 @@
+.screen {
+  position: relative;
+  height: 100dvh;
+  background: #F5F2EC;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: 60px 22px 14px;
+  flex-shrink: 0;
+}
+
+.back {
+  font-size: 15px;
+  font-weight: 600;
+  color: #5B7D6B;
+  margin-bottom: 10px;
+}
+
+.wordRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.word {
+  font-size: 30px;
+  color: #22261F;
+}
+
+.gloss {
+  font-size: 14px;
+  color: #6F7268;
+}
+
+.meta {
+  font-size: 13px;
+  color: #9A9A8E;
+  margin-top: 4px;
+}
+
+.list {
+  flex: 1;
+  overflow: auto;
+  padding: 6px 22px 120px;
+}
+
+.centerState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 70px 0;
+  gap: 14px;
+}
+
+.spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid #DCD8CD;
+  border-top-color: #5B7D6B;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.centerText {
+  font-size: 14px;
+  color: #9A9A8E;
+}
+
+.errorCard {
+  background: #FBEEE6;
+  border-radius: 16px;
+  padding: 16px;
+  font-size: 14px;
+  color: #8A5A33;
+  text-align: center;
+}
+
+.retryBtn {
+  font-size: 14px;
+  font-weight: 600;
+  color: #5B7D6B;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 16px 16px 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+
+.playBtn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #E7EDE8;
+  color: #3F5C4D;
+  font-size: 13px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.playBtn:disabled { opacity: .4; }
+.playBtnActive { background: #5B7D6B; color: #fff; }
+
+.rowMid {
+  flex: 1;
+  min-width: 0;
+}
+
+.greek {
+  font-size: 18px;
+  line-height: 1.45;
+  color: #22261F;
+}
+
+.english {
+  font-size: 14px;
+  color: #6F7268;
+  margin-top: 3px;
+}
+
+.note {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #A9A99C;
+  margin-top: 8px;
+}
+
+.star {
+  font-size: 20px;
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+
+.saveBar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 14px 22px 34px;
+  background: rgba(245,242,236,.94);
+  border-top: 1px solid #E4E0D6;
+}
+
+.saveBtn {
+  width: 100%;
+  height: 54px;
+  border-radius: 16px;
+  background: #5B7D6B;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}

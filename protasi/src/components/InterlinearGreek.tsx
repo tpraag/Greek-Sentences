@@ -1,4 +1,5 @@
 import { transliterateGreek } from '../lib/transliterate'
+import { normalizeWord } from '../lib/wordCache'
 
 interface Props {
   text: string
@@ -7,6 +8,8 @@ interface Props {
   stackClassName: string
   wordClassName: string
   phoneticClassName: string
+  selectedWord?: string | null
+  selectedClassName?: string
 }
 
 // Renders Greek text word-by-word, each word stacked above its own phonetic
@@ -15,16 +18,18 @@ interface Props {
 // (still tappable) when phonetics are turned off.
 export default function InterlinearGreek({
   text, showPhonetics, onWordTap, stackClassName, wordClassName, phoneticClassName,
+  selectedWord, selectedClassName,
 }: Props) {
   return (
     <>
       {text.split(/(\s+)/).map((token, i) => {
         if (!token) return null
         if (/^\s+$/.test(token)) return token
+        const isSelected = !!selectedWord && normalizeWord(token) === normalizeWord(selectedWord)
         return (
           <span key={i} className={stackClassName}>
             <span
-              className={wordClassName}
+              className={`${wordClassName} ${isSelected && selectedClassName ? selectedClassName : ''}`}
               onClick={onWordTap ? e => { e.stopPropagation(); onWordTap(token) } : undefined}
             >
               {token}

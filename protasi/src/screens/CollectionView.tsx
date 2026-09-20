@@ -68,8 +68,19 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
     setQuery('')
   }
 
+  // Tapping the bar plays straight away with the saved playback defaults; the Options
+  // pill inside it opens the setup sheet instead.
   function handlePlayAll() {
-    setPlaySetup(true)
+    const queue = translated.map(s => s.id)
+    if (!queue.length) return
+    startPlayback(collectionId, queue, {
+      order: state.settings.order,
+      gapSeconds: state.settings.gapSeconds,
+      view: 'immersive',
+      greekSpeed: state.settings.greekSpeed,
+      sentenceRepeat: state.settings.sentenceRepeat,
+      loopList: false,
+    })
   }
 
   function handleStartPlay(opts: any) {
@@ -166,7 +177,13 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
 
       {/* Play all bar */}
       {translated.length > 0 && (
-        <button className={styles.playBar} onClick={handlePlayAll}>
+        <div
+          className={styles.playBar}
+          role="button"
+          tabIndex={0}
+          onClick={handlePlayAll}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlePlayAll() } }}
+        >
           <div className={styles.playBarLeft}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
               <polygon points="5 3 19 12 5 21 5 3"/>
@@ -178,8 +195,13 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
               </div>
             </div>
           </div>
-          <span className={styles.optionsPill}>Options</span>
-        </button>
+          <button
+            className={styles.optionsPill}
+            onClick={e => { e.stopPropagation(); setPlaySetup(true) }}
+          >
+            Options
+          </button>
+        </div>
       )}
 
       {/* Sentence list */}

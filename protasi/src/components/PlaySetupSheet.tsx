@@ -23,7 +23,6 @@ export default function PlaySetupSheet({ count, onStart, onClose }: Props) {
   const { state } = useApp()
   const [order, setOrder] = useState<PlaybackOrder>(state.settings.order)
   const [gap, setGap] = useState(state.settings.gapSeconds)
-  const [view, setView] = useState<PlayerView>(state.settings.defaultPlayerView)
   const [speed, setSpeed] = useState<GreekSpeed>(state.settings.greekSpeed)
   const [repeat, setRepeat] = useState(state.settings.sentenceRepeat ?? 1)
   const [loopList, setLoopList] = useState(false)
@@ -116,14 +115,6 @@ export default function PlaySetupSheet({ count, onStart, onClose }: Props) {
         </div>
 
         <div className={styles.section}>
-          <span className="label">While playing</span>
-          <div className={styles.chips}>
-            <button className={`chip ${view === 'compact' ? 'active' : ''}`} onClick={() => setView('compact')}>Compact bar</button>
-            <button className={`chip ${view === 'immersive' ? 'active' : ''}`} onClick={() => setView('immersive')}>Immersive</button>
-          </div>
-        </div>
-
-        <div className={styles.section}>
           <div className={styles.loopRow}>
             <span className={styles.loopLabel}>Loop playlist</span>
             <label className="switch">
@@ -136,7 +127,7 @@ export default function PlaySetupSheet({ count, onStart, onClose }: Props) {
         <button
           className="btn-accent"
           style={{ marginTop: 8 }}
-          onClick={() => onStart({ order, gapSeconds: gap, view, greekSpeed: speed, loopList, sentenceRepeat: repeat })}
+          onClick={() => onStart({ order, gapSeconds: gap, view: 'immersive', greekSpeed: speed, loopList, sentenceRepeat: repeat })}
         >
           Start playing
         </button>

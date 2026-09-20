@@ -17,16 +17,10 @@ export default function Library({ onOpen, onProgress, onSentence }: Props) {
   const { state, createCollection } = useApp()
   const [showNew, setShowNew] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
-  const [search, setSearch] = useState('')
 
   const { collections, sentences } = state
 
   const totalSentences = Object.values(sentences).reduce((a, b) => a + b.length, 0)
-  const totalMastered = Object.values(sentences).reduce((a, list) => a + list.filter(isMastered).length, 0)
-
-  const filtered = collections.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase())
-  )
 
   function handleCreate(name: string, icon: IconName, color: CollectionColor) {
     setShowNew(false)
@@ -34,7 +28,7 @@ export default function Library({ onOpen, onProgress, onSentence }: Props) {
   }
 
   if (showSearch) {
-    return <SentenceSearch onBack={() => setShowSearch(false)} onSentence={onSentence} />
+    return <SentenceSearch onBack={() => setShowSearch(false)} onSentence={onSentence} onCollection={onOpen} />
   }
 
   return (
@@ -42,34 +36,22 @@ export default function Library({ onOpen, onProgress, onSentence }: Props) {
       <div className={styles.header}>
         <div className={styles.titleRow}>
           <h1 className={styles.title}>Library</h1>
-          <button className={styles.searchBtn} onClick={() => setShowSearch(true)} aria-label="Search sentences">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          </button>
+          <div className={styles.headerActions}>
+            <button className={styles.searchBtn} onClick={onProgress} aria-label="Progress">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+            </button>
+            <button className={styles.searchBtn} onClick={() => setShowSearch(true)} aria-label="Search">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </button>
+          </div>
         </div>
         <p className={styles.sub}>
           {totalSentences} sentence{totalSentences !== 1 ? 's' : ''} · {collections.length} collection{collections.length !== 1 ? 's' : ''}
-        </p>
-        <div className={styles.searchWrap}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input
-            className={styles.search}
-            placeholder="Search collections"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-
-        <button className={styles.progressCard} onClick={onProgress}>
-          <span className={styles.progressLabel}>Greek Progress</span>
-          <span className={styles.progressStats}>
-            {state.progress.lifetimeMasteryPoints} Mastery Points · {totalMastered} Mastered
-          </span>
-        </button>
-      </div>
+        </p>      </div>
 
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
@@ -84,7 +66,7 @@ export default function Library({ onOpen, onProgress, onSentence }: Props) {
         )}
 
         <div className={styles.list}>
-          {filtered.map(col => {
+          {collections.map(col => {
             const colSentences = sentences[col.id] ?? []
             const count = colSentences.length
             const mastered = colSentences.filter(isMastered).length
@@ -110,10 +92,8 @@ export default function Library({ onOpen, onProgress, onSentence }: Props) {
               </button>
             )
           })}
-          {filtered.length === 0 && !showNew && (
-            <p className={styles.empty}>
-              {search ? 'No collections match.' : 'Tap + New to create your first collection.'}
-            </p>
+          {collections.length === 0 && !showNew && (
+            <p className={styles.empty}>Tap + New to create your first collection.</p>
           )}
         </div>
       </div>

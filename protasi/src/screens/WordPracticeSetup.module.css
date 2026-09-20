@@ -1,0 +1,148 @@
+.screen {
+  min-height: 100dvh;
+  background: #F5F2EC;
+  display: flex;
+  flex-direction: column;
+  padding: 60px 22px 34px;
+}
+
+.back {
+  font-size: 15px;
+  font-weight: 600;
+  color: #5B7D6B;
+  align-self: flex-start;
+}
+
+.wordHeader {
+  margin-top: 26px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .16em;
+  color: #9A9A8E;
+}
+
+.wordRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.word {
+  font-size: 38px;
+  color: #22261F;
+}
+
+.pos {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: #5B7D6B;
+}
+
+.gloss {
+  font-size: 16px;
+  color: #6F7268;
+  margin-top: 4px;
+}
+
+.section {
+  margin-top: 28px;
+}
+.section:first-of-type { margin-top: 34px; }
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #22261F;
+}
+
+.subLabel {
+  font-size: 13px;
+  color: #9A9A8E;
+  margin-top: 2px;
+}
+
+.value {
+  font-size: 15px;
+  color: #6F7268;
+}
+
+.optionRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.optionBtn {
+  flex: 1;
+  height: 52px;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 600;
+  background: #fff;
+  color: #22261F;
+  border: 1.5px solid #E4E0D6;
+}
+.optionBtn.optionSmall {
+  height: 46px;
+  font-size: 14px;
+}
+.optionActive {
+  background: #5B7D6B;
+  color: #fff;
+  border-color: #5B7D6B;
+}
+
+.pillRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.pill {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #fff;
+  color: #8A8A80;
+  border: 1.5px solid #E4E0D6;
+}
+.pillActive {
+  background: #E7EDE8;
+  color: #3F5C4D;
+  border-color: #B9CDBF;
+}
+
+.spacer { flex: 1; }
+
+.generateBtn {
+  height: 58px;
+  border-radius: 18px;
+  background: #5B7D6B;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 24px;
+}
+
+.footnote {
+  text-align: center;
+  font-size: 12px;
+  color: #9A9A8E;
+  margin-top: 14px;
+}

@@ -52,6 +52,43 @@ export async function listElevenLabsVoices(): Promise<{ voice_id: string; name: 
   return data.voices ?? []
 }
 
+export interface WordInfo {
+  word: string
+  gloss: string
+  pos: string
+}
+
+// Word Practice's dictionary lookup — a small Claude call, not Google Translate, since
+// part of speech decides whether the tense picker shows on the Setup screen.
+export async function getWordInfo(word: string, context?: string): Promise<WordInfo> {
+  const res = await fetch('/api/word-info', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+    body: JSON.stringify({ word, context }),
+  })
+  if (!res.ok) throw new Error('Could not look up word')
+  return res.json()
+}
+
+export interface GeneratedSentence {
+  greek: string
+  english: string
+  note: string
+}
+
+export async function generatePracticeSentences(params: {
+  word: string; gloss: string; pos: string; count: number; level: string; tenses: string[]
+}): Promise<GeneratedSentence[]> {
+  const res = await fetch('/api/generate-practice', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+    body: JSON.stringify(params),
+  })
+  if (!res.ok) throw new Error('Could not generate sentences')
+  const data = await res.json()
+  return data.sentences ?? []
+}
+
 export interface AccountSummary {
   uid: string
   email: string | undefined

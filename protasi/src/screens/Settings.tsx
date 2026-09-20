@@ -4,7 +4,7 @@ import { signOutUser } from '../lib/auth'
 import { generateSpeech } from '../lib/api'
 import { GREEK_VOICES, ENGLISH_VOICES } from '../lib/voices'
 import AdminApprovals from './AdminApprovals'
-import type { Settings as SettingsType, PlaybackOrder, PlayerView, GreekSpeed } from '../types'
+import type { Settings as SettingsType, PlaybackOrder, GreekSpeed } from '../types'
 import styles from './Settings.module.css'
 
 const PREVIEW_TEXT = {
@@ -20,7 +20,6 @@ export default function Settings({ isAdmin }: Props) {
   const { state, saveSettings, showToast } = useApp()
   const [showApprovals, setShowApprovals] = useState(false)
   const [form, setForm] = useState<SettingsType>(state.settings)
-  const [saved, setSaved] = useState(false)
   const [previewing, setPreviewing] = useState<'en' | 'gr' | null>(null)
   const [showCustomPreview, setShowCustomPreview] = useState(false)
   const [customPreview, setCustomPreview] = useState({ en: '', gr: '' })
@@ -36,25 +35,16 @@ export default function Settings({ isAdmin }: Props) {
     previewCacheRef.current.forEach(url => URL.revokeObjectURL(url))
   }, [])
 
+  // Every change saves immediately — the rest of the app reads the persisted setting,
+  // not this screen's local copy, so there's no separate "Save" step to forget.
   function set<K extends keyof SettingsType>(k: K, v: SettingsType[K]) {
-    setForm(f => ({ ...f, [k]: v }))
-  }
-
-  // Voice choice feeds audio generation everywhere else in the app (Sentence Detail,
-  // QuickAdd's auto-narrate, etc.), all of which read the persisted setting, not this
-  // screen's draft — so unlike the other fields below, a voice pick must save immediately
-  // or every subsequent narration silently keeps using the old voice until "Save settings"
-  // happens to be tapped.
-  function setVoice(lang: 'en' | 'gr', voiceId: string) {
-    const updated = { ...form, [lang === 'en' ? 'enVoiceId' : 'grVoiceId']: voiceId }
+    const updated = { ...form, [k]: v }
     setForm(updated)
-    saveSettings(updated).catch(() => showToast('Could not save voice'))
+    saveSettings(updated).catch(() => showToast('Could not save settings'))
   }
 
-  async function handleSave() {
-    await saveSettings(form)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  function setVoice(lang: 'en' | 'gr', voiceId: string) {
+    set(lang === 'en' ? 'enVoiceId' : 'grVoiceId', voiceId)
   }
 
   async function previewVoice(lang: 'en' | 'gr') {
@@ -249,14 +239,6 @@ export default function Settings({ isAdmin }: Props) {
             </div>
             <div className="hairline" />
             <div className={styles.row}>
-              <span className={styles.rowLabel}>Player look</span>
-              <select className={styles.select} value={form.defaultPlayerView} onChange={e => set('defaultPlayerView', e.target.value as PlayerView)}>
-                <option value="compact">Compact bar</option>
-                <option value="immersive">Immersive</option>
-              </select>
-            </div>
-            <div className="hairline" />
-            <div className={styles.row}>
               <span className={styles.rowLabel}>Auto-translate on save</span>
               <label className="switch">
                 <input type="checkbox" checked={form.autoTranslate ?? true} onChange={e => set('autoTranslate', e.target.checked)} />
@@ -274,9 +256,33 @@ export default function Settings({ isAdmin }: Props) {
           </div>
         </div>
 
-        <button className="btn-accent" onClick={handleSave}>
-          {saved ? 'Saved ✓' : 'Save settings'}
-        </button>
+        {/* Word Practice defaults */}
+        <div className={styles.group}>
+          <div className="label" style={{ marginBottom: 8 }}>Word practice defaults</div>
+          <div className={`card ${styles.card}`}>
+            <div className={styles.row}>
+              <span className={styles.rowLabel}>How many sentences</span>
+              <div className="segmented">
+                {[1, 3, 5, 8].map(n => (
+                  <button key={n} className={(form.practiceDefaultCount ?? 3) === n ? 'active' : ''} onClick={() => set('practiceDefaultCount', n)}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="hairline" />
+            <div className={styles.row}>
+              <span className={styles.rowLabel}>Level</span>
+              <div className="segmented">
+                {['A1', 'A2', 'B1', 'B2', 'C1'].map(l => (
+                  <button key={l} className={(form.practiceDefaultLevel ?? 'A2') === l ? 'active' : ''} onClick={() => set('practiceDefaultLevel', l)}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
 
         <button
           className="btn-outline"

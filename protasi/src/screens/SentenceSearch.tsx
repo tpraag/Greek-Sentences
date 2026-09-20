@@ -7,9 +7,10 @@ import styles from './SentenceSearch.module.css'
 interface Props {
   onBack: () => void
   onSentence: (collectionId: string, sentenceId: string) => void
+  onCollection: (collectionId: string) => void
 }
 
-export default function SentenceSearch({ onBack, onSentence }: Props) {
+export default function SentenceSearch({ onBack, onSentence, onCollection }: Props) {
   const { state } = useApp()
   const [query, setQuery] = useState('')
 
@@ -21,6 +22,12 @@ export default function SentenceSearch({ onBack, onSentence }: Props) {
       s.en.toLowerCase().includes(q) || (s.gr ?? '').toLowerCase().includes(q)
     )
   }, [query, state.sentences])
+
+  const matchingCollections = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return []
+    return state.collections.filter(c => c.name.toLowerCase().includes(q))
+  }, [query, state.collections])
 
   return (
     <div className={styles.screen}>
@@ -37,7 +44,7 @@ export default function SentenceSearch({ onBack, onSentence }: Props) {
           </svg>
           <input
             className={styles.search}
-            placeholder="Search all sentences"
+            placeholder="Search sentences and collections"
             value={query}
             onChange={e => setQuery(e.target.value)}
             autoFocus
@@ -49,10 +56,19 @@ export default function SentenceSearch({ onBack, onSentence }: Props) {
         <div className={styles.list}>
           {!query.trim() ? (
             <p className={styles.empty}>Start typing to search across every collection.</p>
-          ) : results.length === 0 ? (
-            <p className={styles.empty}>No sentences match "{query.trim()}".</p>
+          ) : results.length === 0 && matchingCollections.length === 0 ? (
+            <p className={styles.empty}>Nothing matches "{query.trim()}".</p>
           ) : (
-            results.map(s => {
+            <>
+            {matchingCollections.map(c => (
+              <button key={c.id} className={styles.row} onClick={() => onCollection(c.id)}>
+                <div className={styles.textGroup}>
+                  <span className={styles.en}>{c.name}</span>
+                  <span className={styles.colName}>Collection</span>
+                </div>
+              </button>
+            ))}
+            {results.map(s => {
               const col = state.collections.find(c => c.id === s.collectionId)
               return (
                 <button
@@ -72,7 +88,8 @@ export default function SentenceSearch({ onBack, onSentence }: Props) {
                   <StatusDot sentence={s} />
                 </button>
               )
-            })
+            })}
+            </>
           )}
         </div>
       </div>

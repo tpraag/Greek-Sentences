@@ -37,6 +37,10 @@ export function subscribeCollections(uid: string, onData: (cols: Collection[]) =
   })
 }
 
+// Oldest first, so the most recently added sentence lands at the bottom of a list.
+// Sorted client-side rather than via orderBy so no extra composite index is needed.
+const byCreatedAsc = (a: Sentence, b: Sentence) => (a.createdAt ?? 0) - (b.createdAt ?? 0)
+
 export function subscribeSentences(uid: string, collectionId: string, onData: (sentences: Sentence[]) => void): Unsubscribe {
   const q = query(
     sentencesPath(uid),
@@ -44,12 +48,12 @@ export function subscribeSentences(uid: string, collectionId: string, onData: (s
     orderBy('createdAt', 'desc')
   )
   return onSnapshot(q, snap => {
-    onData(snap.docs.map(d => ({ id: d.id, ...d.data() } as Sentence)))
+    onData(snap.docs.map(d => ({ id: d.id, ...d.data() } as Sentence)).sort(byCreatedAsc))
   }, () => {
     // composite index not ready — fallback without orderBy
     onSnapshot(
       query(sentencesPath(uid), where('collectionId', '==', collectionId)),
-      snap => onData(snap.docs.map(d => ({ id: d.id, ...d.data() } as Sentence)))
+      snap => onData(snap.docs.map(d => ({ id: d.id, ...d.data() } as Sentence)).sort(byCreatedAsc))
     )
   })
 }
@@ -63,6 +67,7 @@ export function subscribeAllSentences(uid: string, onData: (byCollection: Record
       const s = { id: d.id, ...d.data() } as Sentence
       ;(grouped[s.collectionId] ??= []).push(s)
     })
+    Object.values(grouped).forEach(list => list.sort(byCreatedAsc))
     onData(grouped)
   }
   const q = query(sentencesPath(uid), orderBy('createdAt', 'desc'))
@@ -89,10 +94,15 @@ export async function updateCollection(uid: string, id: string, data: Partial<Co
 }
 
 export async function deleteCollection(uid: string, id: string): Promise<void> {
-  // get sentences via a one-shot read so we can delete them
+  // get sentences via a one-shot read so we can delete them (and their audio)
   const { getDocs } = await import('firebase/firestore')
   const snap = await getDocs(query(sentencesPath(uid), where('collectionId', '==', id)))
   await Promise.all(snap.docs.map(d => deleteDoc(d.ref)))
+  // Best-effort cleanup of the audio blobs in Storage (ignore if they don't exist)
+  await Promise.all(snap.docs.flatMap(d => [
+    deleteAudio(uid, d.id, 'en').catch(() => {}),
+    deleteAudio(uid, d.id, 'gr').catch(() => {}),
+  ]))
   await deleteDoc(doc(db, 'users', uid, 'collections', id))
 }
 

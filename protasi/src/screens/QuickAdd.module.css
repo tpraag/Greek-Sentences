@@ -76,6 +76,39 @@
   font-weight: 500;
 }
 
+.modeToggle {
+  flex-shrink: 0;
+}
+
+.lineCount {
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-top: -14px;
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  height: 52px;
+  margin-top: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  animation: spin .8s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 .colSection {
   display: flex;
   flex-direction: column;

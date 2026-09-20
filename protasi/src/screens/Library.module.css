@@ -16,6 +16,13 @@
   color: var(--ink);
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .searchBtn {
   width: 38px;
   height: 38px;
@@ -34,51 +41,6 @@
   font-size: 14px;
   color: var(--ink-muted);
   margin-bottom: 16px;
-}
-
-.searchWrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 13px;
-  padding: 10px 14px;
-  color: var(--ink-muted);
-}
-
-.search {
-  flex: 1;
-  font-size: 15px;
-  color: var(--ink);
-}
-.search::placeholder { color: var(--ink-placeholder); }
-
-.progressCard {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  width: 100%;
-  margin-top: 14px;
-  padding: 12px 14px;
-  border-radius: 13px;
-  background: var(--accent-tint);
-  text-align: left;
-}
-
-.progressLabel {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.progressStats {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-soft);
 }
 
 .section { padding: 0 24px; }

@@ -124,10 +124,11 @@ export interface Settings {
   gapSeconds: number
   greekSpeed: GreekSpeed
   sentenceRepeat: number     // default times each sentence repeats (0 = ∞, 1 = once)
-  defaultPlayerView: PlayerView
   autoTranslate: boolean
   autoNarrate: boolean
   showPhonetics: boolean   // show a Latin phonetic line beneath Greek text
+  practiceDefaultCount: number   // default "how many sentences" in Word Practice setup
+  practiceDefaultLevel: string   // default CEFR level in Word Practice setup
 }
 
 export interface PlaybackState {
@@ -145,4 +146,5 @@ export interface PlaybackState {
   collectionId: string | null
   gapSeconds: number
   greekSpeed: GreekSpeed
+  progress: number           // 0–1, current audio position within the playing nugget
 }

@@ -1,0 +1,86 @@
+.popup {
+  position: relative;
+  width: 240px;
+  margin: 14px auto 0;
+  background: #FBFAF6;
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.35);
+  animation: popIn .18s ease-out;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(6px) scale(.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.row1 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.word {
+  font-size: 21px;
+  color: #22261F;
+}
+
+.pos {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: #5B7D6B;
+}
+
+.gloss {
+  font-size: 14px;
+  color: #6F7268;
+  margin-top: 2px;
+}
+
+.loadingText, .errorText {
+  font-size: 14px;
+  color: #6F7268;
+  text-align: center;
+  padding: 4px 0;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.playBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #ECE9E0;
+  color: #5B7D6B;
+  font-size: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.playBtn:disabled { opacity: .5; }
+
+.practiceBtn {
+  flex: 1;
+  height: 40px;
+  border-radius: 12px;
+  background: #5B7D6B;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 11px;
+  color: #C6C3B8;
+  padding: 4px;
+}

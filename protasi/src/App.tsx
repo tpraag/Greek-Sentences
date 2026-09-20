@@ -114,7 +114,7 @@ function AppInner() {
         />
       )}
 
-      <ImmersivePlayer />
+      <ImmersivePlayer onEditSentence={goToSentenceDirect} />
       {!nav.screen && <CompactPlayer />}
 
       {showTabBar && (

@@ -20,10 +20,11 @@ const DEFAULT_SETTINGS: Settings = {
   gapSeconds: 3,
   greekSpeed: 1.0,
   sentenceRepeat: 1,
-  defaultPlayerView: 'immersive',
   autoTranslate: true,
   autoNarrate: true,
   showPhonetics: true,
+  practiceDefaultCount: 3,
+  practiceDefaultLevel: 'A2',
 }
 
 const DEFAULT_PROGRESS: UserProgress = {
@@ -45,6 +46,7 @@ const DEFAULT_PLAYBACK: PlaybackState = {
   collectionId: null,
   gapSeconds: 3,
   greekSpeed: 1.0,
+  progress: 0,
 }
 
 interface AppState {
@@ -172,11 +174,12 @@ interface AppContextValue {
   createCollection: (data: Omit<Collection, 'id'>) => Promise<Collection>
   updateCollection: (id: string, data: Partial<Collection>) => Promise<void>
   deleteCollection: (id: string) => Promise<void>
-  createSentence: (data: Omit<Sentence, 'id'>, autoTranslate?: boolean, autoNarrate?: boolean) => Promise<Sentence>
+  createSentence: (data: Omit<Sentence, 'id'>, autoTranslate?: boolean, autoNarrate?: boolean, silent?: boolean) => Promise<Sentence>
   updateSentence: (id: string, collectionId: string, data: Partial<Sentence>) => Promise<void>
   deleteSentence: (id: string, collectionId: string) => Promise<void>
   translateSentence: (id: string, collectionId: string) => Promise<void>
   generateAudio: (id: string, collectionId: string, lang: 'en' | 'gr') => Promise<string>
+  uploadAudioBlob: (id: string, collectionId: string, lang: 'en' | 'gr', blob: Blob) => Promise<string>
   setLearningStatus: (id: string, collectionId: string, status: LearningStatus) => Promise<void>
   recordQuizResult: (id: string, collectionId: string, result: QuizResult) => Promise<void>
   saveSettings: (s: Settings) => Promise<void>
@@ -189,6 +192,7 @@ interface AppContextValue {
   setGreekSpeed: (speed: GreekSpeed) => void
   setPlaybackOrder: (order: PlaybackOrder) => void
   setGapSeconds: (gapSeconds: number) => void
+  seek: (fraction: number) => void
 }
 
 const AppContext = createContext<AppContextValue>(null!)
@@ -218,6 +222,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // public signature — that's what keeps this refactor contained to the store/db layer;
   // no screen or component needs to know uids exist.
   const uidRef = useRef<string | null>(null)
+
+  // Drives the player's scrub bar off the actual <audio> element rather than a
+  // simulated value — fires ~4x/sec natively, no throttling needed.
+  useEffect(() => {
+    const audio = audioRef.current
+    const onTimeUpdate = () => {
+      const fraction = audio.duration ? audio.currentTime / audio.duration : 0
+      dispatch({ type: 'SET_PLAYBACK', playback: { progress: fraction } })
+    }
+    audio.addEventListener('timeupdate', onTimeUpdate)
+    return () => audio.removeEventListener('timeupdate', onTimeUpdate)
+  }, [])
 
   useEffect(() => {
     if (!isFirebaseConfigured) {
@@ -303,6 +319,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     data: Omit<Sentence, 'id'>,
     autoTranslate = false,
     autoNarrate = false,
+    silent = false,
   ) => {
     const uid = uidRef.current!
     const sentence = await db.createSentence(uid, data)
@@ -311,7 +328,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (autoTranslate) {
       dispatch({ type: 'UPDATE_SENTENCE', id: sentence.id, collectionId: sentence.collectionId, data: { translating: true } })
-      showToast('Saved · translating…')
+      if (!silent) showToast('Saved · translating…')
       try {
         const gr = await translateToGreek(sentence.en)
         await db.updateSentence(uid, sentence.id, { gr, translating: false })
@@ -331,13 +348,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ])
           await db.updateSentence(uid, sentence.id, { enAudioUrl, grAudioUrl })
           dispatch({ type: 'UPDATE_SENTENCE', id: sentence.id, collectionId: sentence.collectionId, data: { enAudioUrl, grAudioUrl } })
-          showToast('Translation & audio ready')
-        } else {
+          if (!silent) showToast('Translation & audio ready')
+        } else if (!silent) {
           showToast('Translation ready')
         }
       } catch (e) {
         dispatch({ type: 'UPDATE_SENTENCE', id: sentence.id, collectionId: sentence.collectionId, data: { translating: false } })
-        showToast('Translation failed')
+        if (!silent) showToast('Translation failed')
       }
     }
     return sentence
@@ -391,6 +408,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data: { [field]: url } })
     return url
   }, [state.sentences, state.settings])
+
+  // Like generateAudio, but for a blob we already have (e.g. Word Practice's preview
+  // audio, generated before the sentence was saved) — skips the TTS call so we don't
+  // pay for the same narration twice.
+  const uploadAudioBlob = useCallback(async (id: string, collectionId: string, lang: 'en' | 'gr', blob: Blob): Promise<string> => {
+    const uid = uidRef.current!
+    const url = await uploadAudio(uid, id, lang, blob)
+    cacheAudioBlob(url, blob).catch(() => {})
+    const field = lang === 'en' ? 'enAudioUrl' : 'grAudioUrl'
+    await db.updateSentence(uid, id, { [field]: url })
+    dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data: { [field]: url } })
+    return url
+  }, [])
 
   const setLearningStatus = useCallback(async (id: string, collectionId: string, status: LearningStatus) => {
     const sentences = state.sentences[collectionId] ?? []
@@ -592,6 +622,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       collectionId,
       gapSeconds: opts.gapSeconds,
       greekSpeed: opts.greekSpeed,
+      progress: 0,
     }
     dispatch({ type: 'SET_PLAYBACK', playback: pb })
     playbackRef.current = pb  // sync ref immediately so playPhase reads correct greekSpeed
@@ -697,17 +728,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_PLAYBACK', playback: { gapSeconds } })
   }, [])
 
+  // Scrub bar drag/tap — jumps within the currently-playing audio nugget
+  const seek = useCallback((fraction: number) => {
+    const audio = audioRef.current
+    if (!audio.duration) return
+    audio.currentTime = Math.max(0, Math.min(1, fraction)) * audio.duration
+    dispatch({ type: 'SET_PLAYBACK', playback: { progress: fraction } })
+  }, [])
+
   return (
     <AppContext.Provider value={{
       state, dispatch,
       loadCollections, loadSentences,
       createCollection, updateCollection, deleteCollection,
       createSentence, updateSentence, deleteSentence,
-      translateSentence, generateAudio,
+      translateSentence, generateAudio, uploadAudioBlob,
       setLearningStatus, recordQuizResult,
       saveSettings, showToast,
       startPlayback, stopPlayback, pauseResume, nextSentence, prevSentence,
-      setGreekSpeed, setPlaybackOrder, setGapSeconds,
+      setGreekSpeed, setPlaybackOrder, setGapSeconds, seek,
     }}>
       {children}
     </AppContext.Provider>
