@@ -235,6 +235,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => audio.removeEventListener('timeupdate', onTimeUpdate)
   }, [])
 
+  // Keep every narration on-device so playback works offline — not just audio that
+  // happened to be played once while online. Runs one download at a time in the
+  // background, skips anything already stored, and re-tries when the connection returns.
+  const sentencesRef = useRef(state.sentences)
+  sentencesRef.current = state.sentences
+  const audioAttemptedRef = useRef<Set<string>>(new Set())
+  const audioWarmingRef = useRef(false)
+
+  const warmAudioCache = useCallback(async () => {
+    if (audioWarmingRef.current) return
+    audioWarmingRef.current = true
+    try {
+      for (;;) {
+        if (!navigator.onLine) break
+        const next = Object.values(sentencesRef.current).flat()
+          .flatMap(s => [s.enAudioUrl, s.grAudioUrl])
+          .find((u): u is string => !!u && !audioAttemptedRef.current.has(u))
+        if (!next) break
+        audioAttemptedRef.current.add(next)
+        await fetchAndCache(next)
+      }
+    } finally {
+      audioWarmingRef.current = false
+    }
+  }, [])
+
+  useEffect(() => { warmAudioCache() }, [state.sentences, warmAudioCache])
+
+  useEffect(() => {
+    const onOnline = () => { audioAttemptedRef.current.clear(); warmAudioCache() }
+    window.addEventListener('online', onOnline)
+    return () => window.removeEventListener('online', onOnline)
+  }, [warmAudioCache])
+
   useEffect(() => {
     if (!isFirebaseConfigured) {
       dispatch({ type: 'SET_LOADING', loading: false })
