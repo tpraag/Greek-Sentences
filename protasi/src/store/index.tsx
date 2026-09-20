@@ -23,6 +23,7 @@ const DEFAULT_SETTINGS: Settings = {
   autoTranslate: true,
   autoNarrate: true,
   showPhonetics: true,
+  offlineAudio: true,
   practiceDefaultCount: 3,
   practiceDefaultLevel: 'A2',
 }
@@ -240,15 +241,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // background, skips anything already stored, and re-tries when the connection returns.
   const sentencesRef = useRef(state.sentences)
   sentencesRef.current = state.sentences
+  const offlineAudioRef = useRef(true)
+  offlineAudioRef.current = state.settings.offlineAudio !== false
   const audioAttemptedRef = useRef<Set<string>>(new Set())
   const audioWarmingRef = useRef(false)
+  // Sentences can arrive before the saved settings do; don't download until we know
+  // whether the user turned offline audio off.
+  const settingsLoadedRef = useRef(false)
 
   const warmAudioCache = useCallback(async () => {
     if (audioWarmingRef.current) return
     audioWarmingRef.current = true
     try {
       for (;;) {
-        if (!navigator.onLine) break
+        if (!navigator.onLine || !offlineAudioRef.current || !settingsLoadedRef.current) break
         const next = Object.values(sentencesRef.current).flat()
           .flatMap(s => [s.enAudioUrl, s.grAudioUrl])
           .find((u): u is string => !!u && !audioAttemptedRef.current.has(u))
@@ -261,7 +267,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  useEffect(() => { warmAudioCache() }, [state.sentences, warmAudioCache])
+  useEffect(() => { warmAudioCache() }, [state.sentences, state.settings, warmAudioCache])
+
+  // Turning the setting back on should download everything again.
+  useEffect(() => {
+    if (state.settings.offlineAudio === false) return
+    audioAttemptedRef.current.clear()
+    warmAudioCache()
+  }, [state.settings.offlineAudio, warmAudioCache])
 
   useEffect(() => {
     const onOnline = () => { audioAttemptedRef.current.clear(); warmAudioCache() }
@@ -305,7 +318,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dataUnsubs.push(subscribeSettings(user.uid, settings => {
         // Merge over defaults so fields missing from an older settings doc
         // (e.g. autoTranslate / autoNarrate) don't read back as `undefined`.
-        if (settings) dispatch({ type: 'SET_SETTINGS', settings: { ...DEFAULT_SETTINGS, ...settings } })
+        settingsLoadedRef.current = true
+        dispatch({ type: 'SET_SETTINGS', settings: { ...DEFAULT_SETTINGS, ...(settings ?? {}) } })
       }))
 
       dataUnsubs.push(subscribeProgress(user.uid, progress => {
@@ -553,7 +567,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       playUrl = cachedUrl
       objectUrlRef.current = cachedUrl
     } else {
-      fetchAndCache(storageUrl) // background; needs CORS on the bucket
+      if (offlineAudioRef.current) fetchAndCache(storageUrl) // background; needs CORS on the bucket
     }
 
     // Update lock-screen / Now Playing metadata

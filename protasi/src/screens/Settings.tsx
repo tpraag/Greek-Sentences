@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useApp } from '../store'
 import { signOutUser } from '../lib/auth'
 import { generateSpeech } from '../lib/api'
+import { getAudioCacheStats, clearAudioCache } from '../lib/audioCache'
 import { GREEK_VOICES, ENGLISH_VOICES } from '../lib/voices'
 import AdminApprovals from './AdminApprovals'
 import type { Settings as SettingsType, PlaybackOrder, GreekSpeed } from '../types'
@@ -12,6 +13,11 @@ const PREVIEW_TEXT = {
   gr: 'Γεια σου! Αυτή είναι μια σύντομη δοκιμή της φωνής μου.',
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 interface Props {
   isAdmin: boolean
 }
@@ -20,6 +26,8 @@ export default function Settings({ isAdmin }: Props) {
   const { state, saveSettings, showToast } = useApp()
   const [showApprovals, setShowApprovals] = useState(false)
   const [form, setForm] = useState<SettingsType>(state.settings)
+  const [cacheStats, setCacheStats] = useState<{ count: number; bytes: number } | null>(null)
+  const [clearing, setClearing] = useState(false)
   const [previewing, setPreviewing] = useState<'en' | 'gr' | null>(null)
   const [showCustomPreview, setShowCustomPreview] = useState(false)
   const [customPreview, setCustomPreview] = useState({ en: '', gr: '' })
@@ -29,6 +37,25 @@ export default function Settings({ isAdmin }: Props) {
   const previewCacheRef = useRef<Map<string, string>>(new Map())
 
   useEffect(() => { setForm(state.settings) }, [state.settings])
+
+  useEffect(() => {
+    getAudioCacheStats().then(setCacheStats).catch(() => setCacheStats(null))
+    // The background download keeps filling this while the screen is open
+    const id = setInterval(() => { getAudioCacheStats().then(setCacheStats).catch(() => {}) }, 3000)
+    return () => clearInterval(id)
+  }, [])
+
+  async function handleClearAudio() {
+    if (!confirm('Delete all downloaded audio from this device? Your sentences stay saved, and audio can be downloaded again.')) return
+    setClearing(true)
+    try {
+      await clearAudioCache()
+      setCacheStats(await getAudioCacheStats())
+      showToast('Downloaded audio cleared')
+    } finally {
+      setClearing(false)
+    }
+  }
 
   // Revoke cached preview object URLs when leaving the screen
   useEffect(() => () => {
@@ -280,6 +307,37 @@ export default function Settings({ isAdmin }: Props) {
                   </button>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* On-device storage */}
+        <div className={styles.group}>
+          <div className="label" style={{ marginBottom: 8 }}>Storage on this device</div>
+          <div className={`card ${styles.card}`}>
+            <div className={styles.row}>
+              <span className={styles.rowLabel}>Keep audio for offline</span>
+              <label className="switch">
+                <input type="checkbox" checked={form.offlineAudio ?? true} onChange={e => set('offlineAudio', e.target.checked)} />
+                <div className="switch-track" />
+              </label>
+            </div>
+            <div className="hairline" />
+            <div className={styles.row}>
+              <div>
+                <div className={styles.rowLabel}>Downloaded audio</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginTop: 2 }}>
+                  {cacheStats ? `${formatBytes(cacheStats.bytes)} · ${cacheStats.count} file${cacheStats.count !== 1 ? 's' : ''}` : '…'}
+                </div>
+              </div>
+              <button
+                className="btn-outline"
+                style={{ width: 'auto', padding: '8px 16px', color: 'var(--destructive)', borderColor: 'var(--destructive)' }}
+                disabled={clearing || !cacheStats?.count}
+                onClick={handleClearAudio}
+              >
+                Clear
+              </button>
             </div>
           </div>
         </div>

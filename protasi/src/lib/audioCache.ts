@@ -35,3 +35,18 @@ export async function fetchAndCache(url: string): Promise<void> {
     /* CORS not configured or offline — will retry next time */
   }
 }
+
+// How much audio is stored on this device, for the Settings screen.
+export async function getAudioCacheStats(): Promise<{ count: number; bytes: number }> {
+  let count = 0
+  let bytes = 0
+  await store.iterate<Blob, void>(blob => {
+    count++
+    bytes += blob.size
+  })
+  return { count, bytes }
+}
+
+export async function clearAudioCache(): Promise<void> {
+  await store.clear()
+}

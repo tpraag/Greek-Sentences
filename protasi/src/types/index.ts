@@ -126,6 +126,7 @@ export interface Settings {
   sentenceRepeat: number     // default times each sentence repeats (0 = ∞, 1 = once)
   autoTranslate: boolean
   autoNarrate: boolean
+  offlineAudio: boolean    // keep all narration downloaded on this device for offline playback
   showPhonetics: boolean   // show a Latin phonetic line beneath Greek text
   practiceDefaultCount: number   // default "how many sentences" in Word Practice setup
   practiceDefaultLevel: string   // default CEFR level in Word Practice setup
