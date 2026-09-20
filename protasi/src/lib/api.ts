@@ -58,9 +58,15 @@ export interface WordInfo {
   pos: string
 }
 
-// Word Practice's dictionary lookup — a small Claude call, not Google Translate, since
-// part of speech decides whether the tense picker shows on the Setup screen.
-export async function getWordInfo(word: string, context?: string): Promise<WordInfo> {
+export interface WordGrammar {
+  pos: string
+  gender: string | null   // masculine | feminine | neuter, when the word has one
+  details: string         // e.g. "past · 1st person singular"
+}
+
+// Grammar of a word (part of speech, gender…) from a small Claude call. Google Translate
+// supplies the meaning; it can't say what kind of word something is.
+export async function getWordGrammar(word: string, context?: string): Promise<WordGrammar> {
   const res = await fetch('/api/word-info', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },

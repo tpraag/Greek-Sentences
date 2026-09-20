@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useApp } from '../store'
 import { normalizeWord } from '../lib/wordCache'
 import { getLearningStatus } from '../lib/mastery'
@@ -53,6 +53,10 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
   const [pendingSave, setPendingSave] = useState<{
     items: GeneratedSentence[]; starred: Record<number, boolean>; audio: Record<number, AudioEntry>
   } | null>(null)
+
+  // A word popup belongs to the sentence it was opened on — drop it when playback moves on.
+  const currentSentenceId = playback.queue[playback.qpos]
+  useEffect(() => { setPickedWord(null) }, [currentSentenceId])
 
   if (!playback.active || playback.view !== 'immersive') return null
 

@@ -1,0 +1,165 @@
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: #F3F0E8;
+  display: flex;
+  flex-direction: column;
+  padding: 58px 22px 30px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.dismiss {
+  color: #8A8A7E;
+  padding: 4px;
+  width: 32px;
+}
+
+.label {
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #5B7D6B;
+  white-space: nowrap;
+}
+
+.star {
+  font-size: 21px;
+  line-height: 1;
+  width: 32px;
+  text-align: right;
+}
+
+.center {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  overflow-y: auto;
+  padding: 12px 0;
+}
+
+.position {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #A3A398;
+  font-weight: 700;
+}
+
+.greek {
+  text-align: center;
+  font-size: 27px;
+  line-height: 1.42;
+  color: #22261F;
+}
+
+.english {
+  text-align: center;
+  font-size: 16px;
+  color: #7C7F74;
+}
+
+.note {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #A9A99C;
+  font-weight: 700;
+}
+
+.scrub {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  border-radius: 99px;
+  background: linear-gradient(to right, #5B7D6B var(--fill, 0%), rgba(34,38,31,.12) var(--fill, 0%));
+  margin-bottom: 22px;
+  flex-shrink: 0;
+}
+.scrub::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #5B7D6B;
+}
+.scrub::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 50%;
+  background: #5B7D6B;
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.skipBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8A8A7E;
+  padding: 0 12px;
+  height: 44px;
+}
+
+.bigPlay {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: #5B7D6B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.knobRow {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.knob {
+  flex: 1;
+  height: 52px;
+  border-radius: 14px;
+  background: #FBFAF6;
+  border: 1.5px solid #E7E3D9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.knobCaption {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #9A9A8E;
+}
+
+.knobValue {
+  font-size: 15px;
+  font-weight: 600;
+  color: #22261F;
+}

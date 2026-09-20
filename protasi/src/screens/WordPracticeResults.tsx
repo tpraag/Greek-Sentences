@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../store'
 import { generatePracticeSentences, generateSpeech, type WordInfo, type GeneratedSentence } from '../lib/api'
+import PracticePlayer from '../components/PracticePlayer'
 import type { PracticeParams } from './WordPracticeSetup'
 import styles from './WordPracticeResults.module.css'
 
@@ -20,6 +21,7 @@ export default function WordPracticeResults({ info, params, onBack, onSave }: Pr
   const [items, setItems] = useState<GeneratedSentence[]>([])
   const [starred, setStarred] = useState<Record<number, boolean>>({})
   const [playingIdx, setPlayingIdx] = useState<number | null>(null)
+  const [playerOpen, setPlayerOpen] = useState(false)
   const [audio, setAudio] = useState<Record<number, AudioEntry>>({})
   const audioElRef = useRef<HTMLAudioElement>(new Audio())
 
@@ -76,13 +78,28 @@ export default function WordPracticeResults({ info, params, onBack, onSave }: Pr
     setPlayingIdx(i)
   }
 
+  function openPlayer() {
+    audioElRef.current.pause()
+    setPlayingIdx(null)
+    setPlayerOpen(true)
+  }
+
+  const hasAudio = Object.keys(audio).length > 0
   const starCount = Object.values(starred).filter(Boolean).length
   const meta = loading ? `Level ${params.level}` : `${items.length} sentence${items.length !== 1 ? 's' : ''} · level ${params.level} · audio ready`
 
   return (
     <div className={styles.screen}>
       <div className={styles.header}>
-        <button className={styles.back} onClick={onBack}>‹ Practice Setup</button>
+        <div className={styles.topRow}>
+          <button className={styles.back} onClick={onBack}>‹ Practice Setup</button>
+          {!loading && !errored && (
+            <button className={styles.playAll} onClick={openPlayer} disabled={!hasAudio}>
+              <svg width="11" height="12" viewBox="0 0 12 14" fill="currentColor"><polygon points="1 1 11 7 1 13"/></svg>
+              Play all
+            </button>
+          )}
+        </div>
         <div className={styles.wordRow}>
           <span className={`${styles.word} serif`}>{info.word}</span>
           <span className={styles.gloss}>{info.gloss}</span>
@@ -125,6 +142,17 @@ export default function WordPracticeResults({ info, params, onBack, onSave }: Pr
           ))
         )}
       </div>
+
+      {playerOpen && (
+        <PracticePlayer
+          word={info.word}
+          items={items}
+          audio={audio}
+          starred={starred}
+          onToggleStar={toggleStar}
+          onClose={() => setPlayerOpen(false)}
+        />
+      )}
 
       {starCount > 0 && !loading && (
         <div className={styles.saveBar}>
