@@ -13,10 +13,11 @@ interface Props {
   collectionId: string
   onBack: () => void
   fromPlayer?: boolean     // opened from the player — the back link then says "Player"
+  onMoved: (newCollectionId: string) => void   // the sentence now lives in another collection
 }
 
-export default function SentenceDetail({ sentenceId, collectionId, onBack, fromPlayer }: Props) {
-  const { state, updateSentence, translateSentence, generateAudio, deleteSentence, startPlayback, showToast } = useApp()
+export default function SentenceDetail({ sentenceId, collectionId, onBack, fromPlayer, onMoved }: Props) {
+  const { state, updateSentence, translateSentence, generateAudio, deleteSentence, moveSentence, startPlayback, showToast } = useApp()
   const [speed, setSpeed] = useState<GreekSpeed>(state.settings.greekSpeed)
   const [loop, setLoop] = useState(false)
   const [_playingLang, setPlayingLang] = useState<'en' | 'gr' | null>(null)
@@ -28,7 +29,13 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack, fromP
   const [editGr, setEditGr] = useState('')
   const [saving, setSaving] = useState(false)
   const [pendingVoice, setPendingVoice] = useState<{ lang: 'en' | 'gr'; voiceId: string } | null>(null)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [narrating, setNarrating] = useState<'en' | 'gr' | null>(null)
+  // Opened from the player: preview here without touching the player's own paused session.
+  // (Hooks stay above the early return below — the sentence can vanish mid-render when it's
+  // deleted or moved, and a hook after that return would crash the page.)
+  const previewRef = useRef<HTMLAudioElement | null>(null)
+  useEffect(() => () => { previewRef.current?.pause() }, [])
 
   const sentences = state.sentences[collectionId] ?? []
   const idx = sentences.findIndex(s => s.id === sentenceId)
@@ -39,9 +46,10 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack, fromP
 
   const cached = !!(sentence.enAudioUrl && sentence.grAudioUrl)
 
-  // Opened from the player: preview here without touching the player's own paused session
-  const previewRef = useRef<HTMLAudioElement | null>(null)
-  useEffect(() => () => { previewRef.current?.pause() }, [])
+  const narratorRows = [
+    { lang: 'en' as const, label: 'English', voices: ENGLISH_VOICES, recorded: sentence.enVoiceId, fallback: state.settings.enVoiceId, audioUrl: sentence.enAudioUrl },
+    { lang: 'gr' as const, label: 'Greek', voices: GREEK_VOICES, recorded: sentence.grVoiceId, fallback: state.settings.grVoiceId, audioUrl: sentence.grAudioUrl },
+  ].filter(r => r.lang === 'en' || !!sentence.gr)
 
   async function playPreview(lang: 'en' | 'gr') {
     const url = lang === 'en' ? sentence.enAudioUrl : sentence.grAudioUrl
@@ -136,6 +144,17 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack, fromP
     if (sentence.gr) await generateAudio(sentenceId, collectionId, 'gr')
   }
 
+  async function handleMove(newCollectionId: string) {
+    if (newCollectionId === collectionId) return
+    try {
+      await moveSentence(sentenceId, collectionId, newCollectionId)
+      onMoved(newCollectionId)
+      showToast(`Moved to ${state.collections.find(c => c.id === newCollectionId)?.name ?? 'collection'}`)
+    } catch {
+      showToast('Could not move the sentence')
+    }
+  }
+
   // Re-narrates one language with a different voice. Sentences remember their narrator, so
   // later regenerations (after an edit, say) keep it.
   async function handleChangeVoice() {
@@ -154,7 +173,7 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack, fromP
   }
 
   async function handleDelete() {
-    if (!confirm('Delete this sentence permanently?')) return
+    setConfirmingDelete(false)
     await deleteSentence(sentenceId, collectionId)
     showToast('Sentence deleted')
     onBack()
@@ -275,29 +294,52 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack, fromP
             </button>
           </div>
 
+          {/* Collection */}
+          <div className={styles.narrator}>
+            <span className={styles.controlLabel}>Collection</span>
+            <div className={styles.narratorRow}>
+              <span className={styles.narratorLang}>Lives in</span>
+              <select
+                className={styles.voiceSelect}
+                value={collectionId}
+                onChange={e => handleMove(e.target.value)}
+              >
+                {state.collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+          </div>
+
           {/* Narrator */}
           <div className={styles.narrator}>
             <span className={styles.controlLabel}>Narrator</span>
-            {([['en', 'English', ENGLISH_VOICES, sentence.enVoiceId, sentence.enAudioUrl], ['gr', 'Greek', GREEK_VOICES, sentence.grVoiceId, sentence.grAudioUrl]] as const)
-              .filter(([lang]) => lang === 'en' || !!sentence.gr)
-              .map(([lang, label, voices, current]) => (
+            {narratorRows.map(({ lang, label, voices, recorded, fallback, audioUrl }) => {
+              // Sentences narrated before voices were recorded have no record of who narrated
+              // them, so those show the current Settings voice, marked as assumed
+              const current = recorded ?? fallback
+              const knownVoice = !current || voices.some(v => v.id === current)
+              return (
                 <div key={lang} className={styles.narratorRow}>
                   <span className={styles.narratorLang}>{label}</span>
                   {narrating === lang ? (
                     <span className={styles.narratorBusy}>Narrating…</span>
                   ) : (
-                    <select
-                      className={styles.voiceSelect}
-                      value={current ?? ''}
-                      onChange={e => e.target.value && setPendingVoice({ lang, voiceId: e.target.value })}
-                      disabled={narrating !== null}
-                    >
-                      {!current && <option value="">Not recorded — choose…</option>}
-                      {voices.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                    </select>
+                    <span className={styles.narratorPick}>
+                      {!recorded && <span className={styles.assumed}>{audioUrl ? 'assumed' : 'default'}</span>}
+                      <select
+                        className={styles.voiceSelect}
+                        value={current ?? ''}
+                        onChange={e => e.target.value && e.target.value !== current && setPendingVoice({ lang, voiceId: e.target.value })}
+                        disabled={narrating !== null}
+                      >
+                        {!current && <option value="">No voice set</option>}
+                        {!knownVoice && <option value={current}>Other voice</option>}
+                        {voices.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                      </select>
+                    </span>
                   )}
                 </div>
-              ))}
+              )
+            })}
           </div>
 
           {/* Greek speed */}
@@ -335,12 +377,25 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack, fromP
             <button className="btn-outline" onClick={handleRegenAudio}>Regenerate audio</button>
           </div>
 
-          {/* Delete sentence */}
-          <button className={styles.deleteBtn} onClick={handleDelete}>Delete sentence</button>
+          {/* Delete sentence — kept away from the regenerate buttons, quiet, and confirmed */}
+          <div className={styles.dangerZone}>
+            <button className={styles.deleteBtn} onClick={() => setConfirmingDelete(true)}>Delete this sentence…</button>
+          </div>
           </>
           )}
         </div>
       </div>
+
+      {confirmingDelete && (
+        <ConfirmSheet
+          title="Delete this sentence?"
+          message="It will be removed permanently, along with its narration."
+          confirmLabel="Delete sentence"
+          destructive
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
 
       {pendingVoice && (
         <ConfirmSheet

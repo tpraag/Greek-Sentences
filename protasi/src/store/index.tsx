@@ -180,6 +180,7 @@ interface AppContextValue {
   createSentence: (data: Omit<Sentence, 'id'>, autoTranslate?: boolean, autoNarrate?: boolean, silent?: boolean) => Promise<Sentence>
   updateSentence: (id: string, collectionId: string, data: Partial<Sentence>) => Promise<void>
   deleteSentence: (id: string, collectionId: string) => Promise<void>
+  moveSentence: (id: string, fromCollectionId: string, toCollectionId: string) => Promise<void>
   translateSentence: (id: string, collectionId: string) => Promise<void>
   generateAudio: (id: string, collectionId: string, lang: 'en' | 'gr', voiceId?: string) => Promise<string>
   uploadAudioBlob: (id: string, collectionId: string, lang: 'en' | 'gr', blob: Blob, voiceId?: string) => Promise<string>
@@ -422,6 +423,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await db.updateSentence(uidRef.current!, id, data)
     dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data })
   }, [])
+
+  // Audio lives under the sentence's own id, not its collection, so moving is just
+  // re-pointing the sentence at another collection
+  const moveSentence = useCallback(async (id: string, fromCollectionId: string, toCollectionId: string) => {
+    if (fromCollectionId === toCollectionId) return
+    const sentence = (state.sentences[fromCollectionId] ?? []).find(s => s.id === id)
+    if (!sentence) throw new Error('Sentence not found')
+    await db.updateSentence(uidRef.current!, id, { collectionId: toCollectionId })
+    dispatch({ type: 'DELETE_SENTENCE', id, collectionId: fromCollectionId })
+    dispatch({ type: 'ADD_SENTENCE', sentence: { ...sentence, collectionId: toCollectionId } })
+  }, [state.sentences])
 
   const deleteSentence = useCallback(async (id: string, collectionId: string) => {
     const uid = uidRef.current!
@@ -807,7 +819,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       state, dispatch,
       loadCollections, loadSentences,
       createCollection, updateCollection, deleteCollection,
-      createSentence, updateSentence, deleteSentence,
+      createSentence, updateSentence, deleteSentence, moveSentence,
       translateSentence, generateAudio, uploadAudioBlob,
       setLearningStatus, recordQuizResult,
       saveSettings, showToast,

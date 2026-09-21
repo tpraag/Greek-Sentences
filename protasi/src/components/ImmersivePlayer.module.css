@@ -47,6 +47,19 @@
   justify-content: center;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.greekHidden {
+  filter: blur(11px);
+  opacity: .8;
+  pointer-events: none;
+  user-select: none;
+}
+
 .dots {
   display: flex;
   gap: 6px;

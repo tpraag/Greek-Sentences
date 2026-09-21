@@ -102,6 +102,7 @@ function AppInner() {
           collectionId={nav.collectionId}
           onBack={nav.fromPlayer ? returnToPlayer : goBackToCollection}
           fromPlayer={!!nav.fromPlayer}
+          onMoved={newId => setNav(n => ({ ...n, collectionId: newId }))}
         />
       ) : nav.collectionId ? (
         <CollectionView
