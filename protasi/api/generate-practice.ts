@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { requireInvitedUser } from './_lib/verifyAuth.js'
 import { askClaude } from './_lib/anthropic.js'
 
-interface GeneratedSentence { greek: string; english: string; note: string }
+interface GeneratedSentence { greek: string; english: string; note: string; target?: string }
 
 // Lowercase, no accents or punctuation — for spotting a generated sentence that is really
 // the sentence the learner started from.
@@ -56,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : ''
 
   const prompt = `You are a Modern Greek tutor. Write ${wanted} natural Modern Greek practice sentences that all use the word "${word}" (meaning: ${gloss}, ${pos}), at CEFR level ${level}. ${variationLine}${avoidLine}
-Return ONLY a JSON array, no prose, no markdown fence. Each element: {"greek": "...", "english": "...", "note": "short grammar label, max 4 words, e.g. '2nd person · past'"}.`
+Return ONLY a JSON array, no prose, no markdown fence. Each element: {"greek": "...", "english": "...", "note": "short grammar label, max 4 words, e.g. '2nd person · past'", "target": "the single word exactly as it appears in the Greek sentence (the inflected form of the practice word, without θα/να or punctuation)"}.`
 
   try {
     const raw = await askClaude(prompt, 2200)

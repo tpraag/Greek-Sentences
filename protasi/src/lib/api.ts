@@ -85,6 +85,7 @@ export interface GeneratedSentence {
   greek: string
   english: string
   note: string
+  target?: string         // the practice word as it appears in `greek`, for highlighting
 }
 
 export async function generatePracticeSentences(params: {

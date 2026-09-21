@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../store'
 import { generatePracticeSentences, generateSpeech, translateGreekWordToEnglish, type WordInfo, type GeneratedSentence } from '../lib/api'
 import { disagrees } from '../lib/sentenceCheck'
+import { highlightPieces } from '../lib/practiceHighlight'
 import PracticePlayer from '../components/PracticePlayer'
 import type { PracticeParams } from './WordPracticeSetup'
 import styles from './WordPracticeResults.module.css'
@@ -23,6 +24,8 @@ export default function WordPracticeResults({ info, params, onBack, onSave }: Pr
   const [starred, setStarred] = useState<Record<number, boolean>>({})
   // Sentences whose meaning Google Translate reads differently from Claude's — index → Google's English
   const [flags, setFlags] = useState<Record<number, string>>({})
+  // The English is hidden until asked for, so the Greek can be read (and recalled) first
+  const [shown, setShown] = useState<Record<number, boolean>>({})
   const [playingIdx, setPlayingIdx] = useState<number | null>(null)
   const [playerOpen, setPlayerOpen] = useState(false)
   const [audio, setAudio] = useState<Record<number, AudioEntry>>({})
@@ -34,6 +37,7 @@ export default function WordPracticeResults({ info, params, onBack, onSave }: Pr
     setItems([])
     setStarred({})
     setFlags({})
+    setShown({})
     setAudio({})
     try {
       const sentences = await generatePracticeSentences({
@@ -143,16 +147,32 @@ export default function WordPracticeResults({ info, params, onBack, onSave }: Pr
                 {playingIdx === i ? '❚❚' : '▶'}
               </button>
               <div className={styles.rowMid}>
-                <p className={`${styles.greek} serif`}>{it.greek}</p>
-                <p className={styles.english}>{it.english}</p>
+                <p className={`${styles.greek} serif`}>
+                  {highlightPieces(it.greek, it.target, info.word).map((p, k) =>
+                    p.hit ? <span key={k} className={styles.hit}>{p.text}</span> : p.text,
+                  )}
+                </p>
+                {shown[i] && <p className={styles.english}>{it.english}</p>}
                 {it.note && <p className={styles.note}>{it.note}</p>}
                 {flags[i] && (
                   <p className={styles.flag}>Worth double-checking — Google reads this as “{flags[i]}”</p>
                 )}
               </div>
-              <button className={styles.star} onClick={() => toggleStar(i)}>
-                <span style={{ color: starred[i] ? '#C9A227' : '#C9C6BA' }}>{starred[i] ? '★' : '☆'}</span>
-              </button>
+              <div className={styles.side}>
+                <button className={styles.star} onClick={() => toggleStar(i)} aria-label={starred[i] ? 'Unstar' : 'Star'}>
+                  <span style={{ color: starred[i] ? '#C9A227' : '#C9C6BA' }}>{starred[i] ? '★' : '☆'}</span>
+                </button>
+                <button
+                  className={`${styles.reveal} ${shown[i] ? styles.revealOn : ''}`}
+                  onClick={() => setShown(s => ({ ...s, [i]: !s[i] }))}
+                  aria-label={shown[i] ? 'Hide translation' : 'Show translation'}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/>
+                    <path d="m22 22-5-10-5 10"/><path d="M14 18h6"/>
+                  </svg>
+                </button>
+              </div>
             </div>
           ))
         )}

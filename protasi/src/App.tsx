@@ -127,7 +127,6 @@ function AppInner() {
       )}
 
       <ImmersivePlayer
-        onEditSentence={goToSentenceDirect}
         onOpenSentence={goToSentenceFromPlayer}
         hidden={!!nav.fromPlayer && !!nav.sentenceId}
       />

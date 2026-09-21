@@ -155,10 +155,40 @@
   margin-top: 8px;
 }
 
-.star {
-  font-size: 20px;
+.side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
   align-self: flex-start;
   flex-shrink: 0;
+}
+
+.star {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.reveal {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #A9A99C;
+  background: #F1EEE6;
+}
+.revealOn {
+  color: #fff;
+  background: #5B7D6B;
+}
+
+.hit {
+  background: rgba(91,125,107,.16);
+  border-bottom: 2px solid #5B7D6B;
+  border-radius: 4px;
+  padding: 0 2px;
 }
 
 .saveBar {

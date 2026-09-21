@@ -21,23 +21,20 @@ const MAX_DOTS = 12
 
 interface AudioEntry { blob: Blob; url: string }
 interface Props {
-  onEditSentence: (collectionId: string, sentenceId: string) => void
   onOpenSentence: (collectionId: string, sentenceId: string, wasPlaying: boolean) => void
   hidden: boolean     // the sentence page is showing on top; the playback session stays as it was
 }
 
-export default function ImmersivePlayer({ onEditSentence, onOpenSentence, hidden }: Props) {
+export default function ImmersivePlayer({ onOpenSentence, hidden }: Props) {
   const {
     state, dispatch, pauseResume, nextSentence, prevSentence, stopPlayback,
     setGreekSpeed, setPlaybackOrder, setGapSeconds, seek, setLearningStatus,
-    updateSentence, deleteSentence, generateAudio, createCollection, createSentence,
+    generateAudio, createCollection, createSentence,
     uploadAudioBlob, showToast,
   } = useApp()
   const { playback } = state
 
   const [pickedWord, setPickedWord] = useState<string | null>(null)
-  const [overflowOpen, setOverflowOpen] = useState(false)
-  const [addToCollectionOpen, setAddToCollectionOpen] = useState(false)
 
   // Word Practice sub-flow — see design_handoff_word_practice/README.md. Rendered in
   // place of the normal player body while active; returning to the player leaves
@@ -142,33 +139,6 @@ export default function ImmersivePlayer({ onEditSentence, onOpenSentence, hidden
 
     showToast(`${indices.length} sentence${indices.length !== 1 ? 's' : ''} saved · narrating now`)
     setPendingSave(null)
-  }
-
-  function handleAddToCollection(targetId: string) {
-    if (!current) return
-    createSentence({
-      en: current.en, gr: current.gr, enAudioUrl: current.enAudioUrl, grAudioUrl: current.grAudioUrl,
-      fav: false, learned: false, collectionId: targetId, createdAt: Date.now(),
-    }, false, false)
-    const target = state.collections.find(c => c.id === targetId)
-    showToast(`Added to ${target?.name ?? 'collection'}`)
-    setAddToCollectionOpen(false)
-    setOverflowOpen(false)
-  }
-
-  function handleRegenerate() {
-    if (!current) return
-    updateSentence(current.id, current.collectionId, { enAudioUrl: null, grAudioUrl: null })
-    if (current.en) generateAudio(current.id, current.collectionId, 'en')
-    if (current.gr) generateAudio(current.id, current.collectionId, 'gr')
-    setOverflowOpen(false)
-  }
-
-  async function handleDelete() {
-    if (!current) return
-    if (!confirm('Delete this sentence permanently?')) return
-    await deleteSentence(current.id, current.collectionId)
-    stopPlayback()
   }
 
   function cycle<T>(arr: T[], value: T): T {
@@ -373,42 +343,7 @@ export default function ImmersivePlayer({ onEditSentence, onOpenSentence, hidden
           <span className={styles.knobCaption}>Mode</span>
           <span className={styles.knobValue}>{ORDER_LABEL[playback.order]}</span>
         </button>
-        <button className={styles.overflowBtn} onClick={() => setOverflowOpen(true)} aria-label="More">⋯</button>
       </div>
-
-      {overflowOpen && (
-        <div className="sheet-overlay" onClick={() => setOverflowOpen(false)}>
-          <div className="sheet" onClick={e => e.stopPropagation()}>
-            <div className="sheet-handle" />
-            <button className={styles.menuItem} onClick={() => { setOverflowOpen(false); stopPlayback(); onEditSentence(current.collectionId, current.id) }}>
-              Edit sentence
-            </button>
-            <div className="hairline" />
-            <button className={styles.menuItem} onClick={handleRegenerate}>Regenerate audio</button>
-            <div className="hairline" />
-            <button className={styles.menuItem} onClick={() => setAddToCollectionOpen(true)}>Add to another collection</button>
-            <div className="hairline" />
-            <button className={`${styles.menuItem} ${styles.menuDestructive}`} onClick={handleDelete}>Delete sentence</button>
-            <div className="hairline" />
-            <button className={styles.menuItem} onClick={() => setOverflowOpen(false)}>Cancel</button>
-          </div>
-        </div>
-      )}
-
-      {addToCollectionOpen && (
-        <div className="sheet-overlay" onClick={() => setAddToCollectionOpen(false)}>
-          <div className="sheet" onClick={e => e.stopPropagation()}>
-            <div className="sheet-handle" />
-            {state.collections.filter(c => c.id !== current.collectionId).map(c => (
-              <div key={c.id}>
-                <button className={styles.menuItem} onClick={() => handleAddToCollection(c.id)}>{c.name}</button>
-                <div className="hairline" />
-              </div>
-            ))}
-            <button className={styles.menuItem} onClick={() => setAddToCollectionOpen(false)}>Cancel</button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
