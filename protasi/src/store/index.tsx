@@ -48,6 +48,8 @@ const DEFAULT_PLAYBACK: PlaybackState = {
   gapSeconds: 3,
   greekSpeed: 1.0,
   progress: 0,
+  duration: 0,
+  gapEndsAt: null,
 }
 
 interface AppState {
@@ -179,13 +181,13 @@ interface AppContextValue {
   updateSentence: (id: string, collectionId: string, data: Partial<Sentence>) => Promise<void>
   deleteSentence: (id: string, collectionId: string) => Promise<void>
   translateSentence: (id: string, collectionId: string) => Promise<void>
-  generateAudio: (id: string, collectionId: string, lang: 'en' | 'gr') => Promise<string>
-  uploadAudioBlob: (id: string, collectionId: string, lang: 'en' | 'gr', blob: Blob) => Promise<string>
+  generateAudio: (id: string, collectionId: string, lang: 'en' | 'gr', voiceId?: string) => Promise<string>
+  uploadAudioBlob: (id: string, collectionId: string, lang: 'en' | 'gr', blob: Blob, voiceId?: string) => Promise<string>
   setLearningStatus: (id: string, collectionId: string, status: LearningStatus) => Promise<void>
   recordQuizResult: (id: string, collectionId: string, result: QuizResult) => Promise<void>
   saveSettings: (s: Settings) => Promise<void>
   showToast: (msg: string, ms?: number) => void
-  startPlayback: (collectionId: string, queue: string[], opts: { order: PlaybackOrder; gapSeconds: number; view: PlayerView; greekSpeed: GreekSpeed; loopList?: boolean; sentenceRepeat?: number }) => void
+  startPlayback: (collectionId: string, queue: string[], opts: { order: PlaybackOrder; gapSeconds: number; view: PlayerView; greekSpeed: GreekSpeed; loopList?: boolean; sentenceRepeat?: number; startAt?: number }) => void
   stopPlayback: () => void
   pauseResume: () => void
   nextSentence: () => void
@@ -230,10 +232,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const audio = audioRef.current
     const onTimeUpdate = () => {
       const fraction = audio.duration ? audio.currentTime / audio.duration : 0
-      dispatch({ type: 'SET_PLAYBACK', playback: { progress: fraction } })
+      dispatch({ type: 'SET_PLAYBACK', playback: { progress: fraction, duration: Number.isFinite(audio.duration) ? audio.duration : 0 } })
+    }
+    const onMetadata = () => {
+      dispatch({ type: 'SET_PLAYBACK', playback: { duration: Number.isFinite(audio.duration) ? audio.duration : 0 } })
     }
     audio.addEventListener('timeupdate', onTimeUpdate)
-    return () => audio.removeEventListener('timeupdate', onTimeUpdate)
+    audio.addEventListener('loadedmetadata', onMetadata)
+    return () => {
+      audio.removeEventListener('timeupdate', onTimeUpdate)
+      audio.removeEventListener('loadedmetadata', onMetadata)
+    }
   }, [])
 
   // Keep every narration on-device so playback works offline — not just audio that
@@ -394,8 +403,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             uploadAudio(uid, sentence.id, 'en', enBlob),
             uploadAudio(uid, sentence.id, 'gr', grBlob),
           ])
-          await db.updateSentence(uid, sentence.id, { enAudioUrl, grAudioUrl })
-          dispatch({ type: 'UPDATE_SENTENCE', id: sentence.id, collectionId: sentence.collectionId, data: { enAudioUrl, grAudioUrl } })
+          const voices = { enVoiceId: state.settings.enVoiceId, grVoiceId: state.settings.grVoiceId }
+          await db.updateSentence(uid, sentence.id, { enAudioUrl, grAudioUrl, ...voices })
+          dispatch({ type: 'UPDATE_SENTENCE', id: sentence.id, collectionId: sentence.collectionId, data: { enAudioUrl, grAudioUrl, ...voices } })
           if (!silent) showToast('Translation & audio ready')
         } else if (!silent) {
           showToast('Translation ready')
@@ -438,13 +448,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.sentences, showToast])
 
-  const generateAudio = useCallback(async (id: string, collectionId: string, lang: 'en' | 'gr'): Promise<string> => {
+  // The voice is the one asked for, else the one this sentence was already narrated with
+  // (so regenerating keeps its narrator), else the default from Settings. It's recorded on
+  // the sentence so the sentence page can say who's narrating.
+  const generateAudio = useCallback(async (id: string, collectionId: string, lang: 'en' | 'gr', voiceOverride?: string): Promise<string> => {
     const sentences = state.sentences[collectionId] ?? []
     const sentence = sentences.find(s => s.id === id)
     if (!sentence) throw new Error('Sentence not found')
     const text = lang === 'en' ? sentence.en : sentence.gr
     if (!text) throw new Error('No text to narrate')
-    const voiceId = lang === 'en' ? state.settings.enVoiceId : state.settings.grVoiceId
+    const voiceField = lang === 'en' ? 'enVoiceId' : 'grVoiceId'
+    const voiceId = voiceOverride ?? sentence[voiceField] ?? (lang === 'en' ? state.settings.enVoiceId : state.settings.grVoiceId)
     if (!voiceId) throw new Error('No voice configured')
     const uid = uidRef.current!
     const blob = await generateSpeech(text, voiceId)
@@ -452,21 +466,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Seed IndexedDB cache immediately — we already have the blob, no need to re-fetch later
     cacheAudioBlob(url, blob).catch(() => {})
     const field = lang === 'en' ? 'enAudioUrl' : 'grAudioUrl'
-    await db.updateSentence(uid, id, { [field]: url })
-    dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data: { [field]: url } })
+    await db.updateSentence(uid, id, { [field]: url, [voiceField]: voiceId })
+    dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data: { [field]: url, [voiceField]: voiceId } })
     return url
   }, [state.sentences, state.settings])
 
   // Like generateAudio, but for a blob we already have (e.g. Word Practice's preview
   // audio, generated before the sentence was saved) — skips the TTS call so we don't
   // pay for the same narration twice.
-  const uploadAudioBlob = useCallback(async (id: string, collectionId: string, lang: 'en' | 'gr', blob: Blob): Promise<string> => {
+  const uploadAudioBlob = useCallback(async (id: string, collectionId: string, lang: 'en' | 'gr', blob: Blob, voiceId?: string): Promise<string> => {
     const uid = uidRef.current!
     const url = await uploadAudio(uid, id, lang, blob)
     cacheAudioBlob(url, blob).catch(() => {})
     const field = lang === 'en' ? 'enAudioUrl' : 'grAudioUrl'
-    await db.updateSentence(uid, id, { [field]: url })
-    dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data: { [field]: url } })
+    const voiceData = voiceId ? { [lang === 'en' ? 'enVoiceId' : 'grVoiceId']: voiceId } : {}
+    await db.updateSentence(uid, id, { [field]: url, ...voiceData })
+    dispatch({ type: 'UPDATE_SENTENCE', id, collectionId, data: { [field]: url, ...voiceData } })
     return url
   }, [])
 
@@ -592,7 +607,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const scheduleAfterGap = useCallback((fn: () => void, gapMs: number) => {
     if (gapMs <= 0) { fn(); return }
     nextStepRef.current = fn
-    dispatch({ type: 'SET_PLAYBACK', playback: { inGap: true } })
+    dispatch({ type: 'SET_PLAYBACK', playback: { inGap: true, gapEndsAt: Date.now() + gapMs } })
     gapTimerRef.current = setTimeout(() => {
       nextStepRef.current = null
       fn()
@@ -651,14 +666,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const startPlayback = useCallback((
     collectionId: string,
     queue: string[],
-    opts: { order: PlaybackOrder; gapSeconds: number; view: PlayerView; greekSpeed: GreekSpeed; loopList?: boolean; sentenceRepeat?: number }
+    opts: { order: PlaybackOrder; gapSeconds: number; view: PlayerView; greekSpeed: GreekSpeed; loopList?: boolean; sentenceRepeat?: number; startAt?: number }
   ) => {
     audioRef.current.pause()
     if (gapTimerRef.current) clearTimeout(gapTimerRef.current)
+    const startAt = Math.min(Math.max(opts.startAt ?? 0, 0), Math.max(queue.length - 1, 0))
     const pb: PlaybackState = {
       active: true,
       queue,
-      qpos: 0,
+      qpos: startAt,
       order: opts.order,
       phaseIdx: 0,
       inGap: false,
@@ -671,6 +687,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       gapSeconds: opts.gapSeconds,
       greekSpeed: opts.greekSpeed,
       progress: 0,
+      duration: 0,
+      gapEndsAt: null,
     }
     dispatch({ type: 'SET_PLAYBACK', playback: pb })
     playbackRef.current = pb  // sync ref immediately so playPhase reads correct greekSpeed
@@ -706,7 +724,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     const phases = getPhasesForOrder(opts.order)
-    playPhase(queue[0], phases[0], collectionId)
+    playPhase(queue[startAt], phases[0], collectionId)
   }, [playPhase])
 
   const stopPlayback = useCallback(() => {
@@ -728,7 +746,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } else {
         audioRef.current.play()
       }
-      dispatch({ type: 'SET_PLAYBACK', playback: { paused: false } })
+      dispatch({ type: 'SET_PLAYBACK', playback: { paused: false, ...(pb.inGap ? { gapEndsAt: Date.now() + pb.gapSeconds * 1000 } : {}) } })
     } else {
       audioRef.current.pause()
       if (gapTimerRef.current) clearTimeout(gapTimerRef.current)

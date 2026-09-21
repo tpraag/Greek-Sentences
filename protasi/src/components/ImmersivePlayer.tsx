@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../store'
 import { normalizeWord } from '../lib/wordCache'
 import { getLearningStatus } from '../lib/mastery'
@@ -22,9 +22,11 @@ const MAX_DOTS = 12
 interface AudioEntry { blob: Blob; url: string }
 interface Props {
   onEditSentence: (collectionId: string, sentenceId: string) => void
+  onOpenSentence: (collectionId: string, sentenceId: string, wasPlaying: boolean) => void
+  hidden: boolean     // the sentence page is showing on top; the playback session stays as it was
 }
 
-export default function ImmersivePlayer({ onEditSentence }: Props) {
+export default function ImmersivePlayer({ onEditSentence, onOpenSentence, hidden }: Props) {
   const {
     state, dispatch, pauseResume, nextSentence, prevSentence, stopPlayback,
     setGreekSpeed, setPlaybackOrder, setGapSeconds, seek, setLearningStatus,
@@ -57,11 +59,32 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
     items: GeneratedSentence[]; starred: Record<number, boolean>; audio: Record<number, AudioEntry>
   } | null>(null)
 
+  // Ticks while a gap is counting down so "Next in Ns" stays live
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!playback.inGap || playback.paused) return
+    setNow(Date.now())
+    const id = setInterval(() => setNow(Date.now()), 250)
+    return () => clearInterval(id)
+  }, [playback.inGap, playback.paused])
+
   // A word popup belongs to the sentence it was opened on — drop it when playback moves on.
   const currentSentenceId = playback.queue[playback.qpos]
   useEffect(() => { setPickedWord(null) }, [currentSentenceId])
 
-  if (!playback.active || playback.view !== 'immersive') return null
+  // Coming back from the sentence page: if the sentence was deleted there, there's nothing
+  // left to show, so end the session rather than leaving an invisible one running
+  const wasHidden = useRef(false)
+  useEffect(() => {
+    if (wasHidden.current && !hidden && playback.active && playback.view === 'immersive') {
+      const list = playback.collectionId ? (state.sentences[playback.collectionId] ?? []) : []
+      if (!list.some(s => s.id === currentSentenceId)) stopPlayback()
+    }
+    wasHidden.current = hidden
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hidden])
+
+  if (hidden || !playback.active || playback.view !== 'immersive') return null
 
   const col = state.collections.find(c => c.id === playback.collectionId)
   const sentences = playback.collectionId ? (state.sentences[playback.collectionId] ?? []) : []
@@ -85,6 +108,15 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
     setConj({ lemma, word, from: 'player' })
   }
 
+  // Opens this sentence's own page. Playback is paused (not stopped) so the page's
+  // "Player" back link returns to exactly where you were.
+  function openSentencePage() {
+    if (!current) return
+    const wasPlaying = !playback.paused
+    if (wasPlaying) pauseResume()
+    onOpenSentence(current.collectionId, current.id, wasPlaying)
+  }
+
   function closePractice() {
     setPracticeInfo(null)
     setPendingSave(null)
@@ -104,7 +136,7 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
         fav: false, learned: false, collectionId, createdAt: Date.now(),
       }, false, false)
       const entry = pendingSave.audio[i]
-      if (entry) await uploadAudioBlob(sentence.id, collectionId, 'gr', entry.blob).catch(() => {})
+      if (entry) await uploadAudioBlob(sentence.id, collectionId, 'gr', entry.blob, state.settings.grVoiceId).catch(() => {})
       if (state.settings.enVoiceId) await generateAudio(sentence.id, collectionId, 'en').catch(() => {})
     }
 
@@ -196,6 +228,15 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
 
   const status = getLearningStatus(current)
 
+  // Only shown when the sentence repeats: which cycle we're on, and how long until the next
+  // thing happens (the audio finishing, or the gap before the next repeat/sentence ending)
+  const cycleNumber = playback.sentencePlayCount + 1
+  const cycleLabel = playback.sentenceRepeat === 0 ? `Cycle ${cycleNumber} · ∞` : `Cycle ${cycleNumber} of ${playback.sentenceRepeat}`
+  let timeLabel = ''
+  if (playback.paused) timeLabel = 'Paused'
+  else if (playback.inGap && playback.gapEndsAt) timeLabel = `Next in ${Math.max(0, Math.ceil((playback.gapEndsAt - now) / 1000))}s`
+  else if (playback.duration) timeLabel = `${Math.max(0, Math.ceil(playback.duration * (1 - playback.progress)))}s left`
+
   return (
     <div className={styles.screen}>
       <div className={styles.header}>
@@ -205,7 +246,14 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
           </svg>
         </button>
         <div className={styles.colName}>{col?.name}</div>
-        <div className={styles.headerSpacer} />
+        <button className={styles.sentenceBtn} onClick={openSentencePage} aria-label="Open sentence page">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 3 14 8 19 8"/>
+            <line x1="9" y1="13" x2="15" y2="13"/>
+            <line x1="9" y1="17" x2="13" y2="17"/>
+          </svg>
+        </button>
       </div>
 
       {playback.queue.length > MAX_DOTS ? (
@@ -246,6 +294,13 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
           />
         )}
       </div>
+
+      {playback.sentenceRepeat !== 1 && (
+        <div className={styles.repeatRow}>
+          <span>{cycleLabel}</span>
+          <span>{timeLabel}</span>
+        </div>
+      )}
 
       <input
         className={styles.scrub}

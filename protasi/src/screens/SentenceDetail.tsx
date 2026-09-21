@@ -1,19 +1,22 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useApp } from '../store'
 import { translateWordCached, normalizeWord } from '../lib/wordCache'
-import LearningStatusControl from '../components/LearningStatusControl'
+import { getCachedObjectUrl } from '../lib/audioCache'
+import ConfirmSheet from '../components/ConfirmSheet'
+import { GREEK_VOICES, ENGLISH_VOICES } from '../lib/voices'
 import InterlinearGreek from '../components/InterlinearGreek'
-import type { GreekSpeed, LearningStatus } from '../types'
+import type { GreekSpeed } from '../types'
 import styles from './SentenceDetail.module.css'
 
 interface Props {
   sentenceId: string
   collectionId: string
   onBack: () => void
+  fromPlayer?: boolean     // opened from the player — the back link then says "Player"
 }
 
-export default function SentenceDetail({ sentenceId, collectionId, onBack }: Props) {
-  const { state, updateSentence, translateSentence, generateAudio, deleteSentence, startPlayback, showToast, setLearningStatus } = useApp()
+export default function SentenceDetail({ sentenceId, collectionId, onBack, fromPlayer }: Props) {
+  const { state, updateSentence, translateSentence, generateAudio, deleteSentence, startPlayback, showToast } = useApp()
   const [speed, setSpeed] = useState<GreekSpeed>(state.settings.greekSpeed)
   const [loop, setLoop] = useState(false)
   const [_playingLang, setPlayingLang] = useState<'en' | 'gr' | null>(null)
@@ -24,6 +27,8 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack }: Pro
   const [editEn, setEditEn] = useState('')
   const [editGr, setEditGr] = useState('')
   const [saving, setSaving] = useState(false)
+  const [pendingVoice, setPendingVoice] = useState<{ lang: 'en' | 'gr'; voiceId: string } | null>(null)
+  const [narrating, setNarrating] = useState<'en' | 'gr' | null>(null)
 
   const sentences = state.sentences[collectionId] ?? []
   const idx = sentences.findIndex(s => s.id === sentenceId)
@@ -34,7 +39,23 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack }: Pro
 
   const cached = !!(sentence.enAudioUrl && sentence.grAudioUrl)
 
+  // Opened from the player: preview here without touching the player's own paused session
+  const previewRef = useRef<HTMLAudioElement | null>(null)
+  useEffect(() => () => { previewRef.current?.pause() }, [])
+
+  async function playPreview(lang: 'en' | 'gr') {
+    const url = lang === 'en' ? sentence.enAudioUrl : sentence.grAudioUrl
+    if (!url) { showToast('No audio yet for this sentence'); return }
+    if (!previewRef.current) previewRef.current = new Audio()
+    const el = previewRef.current
+    el.pause()
+    el.src = (await getCachedObjectUrl(url)) ?? url
+    el.playbackRate = lang === 'gr' ? speed : 1
+    el.play().catch(() => showToast('Could not play this audio'))
+  }
+
   async function play(lang: 'en' | 'gr') {
+    if (fromPlayer) { playPreview(lang); return }
     setPlayingLang(lang)
     try {
       startPlayback(collectionId, [sentenceId], {
@@ -115,8 +136,21 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack }: Pro
     if (sentence.gr) await generateAudio(sentenceId, collectionId, 'gr')
   }
 
-  function handleStatusChange(status: LearningStatus) {
-    setLearningStatus(sentenceId, collectionId, status)
+  // Re-narrates one language with a different voice. Sentences remember their narrator, so
+  // later regenerations (after an edit, say) keep it.
+  async function handleChangeVoice() {
+    if (!pendingVoice) return
+    const { lang, voiceId } = pendingVoice
+    setPendingVoice(null)
+    setNarrating(lang)
+    try {
+      await generateAudio(sentenceId, collectionId, lang, voiceId)
+      showToast('Narrator changed')
+    } catch {
+      showToast('Could not change the narrator')
+    } finally {
+      setNarrating(null)
+    }
   }
 
   async function handleDelete() {
@@ -143,7 +177,7 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack }: Pro
               <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="7 1 1 7 7 13"/>
               </svg>
-              {col?.name}
+              {fromPlayer ? 'Player' : col?.name}
             </button>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button className={styles.back} onClick={openEdit} style={{ fontSize: 13, color: 'var(--ink-soft)' }}>Edit</button>
@@ -241,10 +275,29 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack }: Pro
             </button>
           </div>
 
-          {/* Learning status */}
-          <div className={styles.controlGroup} style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
-            <span className={styles.controlLabel}>Learning status</span>
-            <LearningStatusControl sentence={sentence} onChange={handleStatusChange} />
+          {/* Narrator */}
+          <div className={styles.narrator}>
+            <span className={styles.controlLabel}>Narrator</span>
+            {([['en', 'English', ENGLISH_VOICES, sentence.enVoiceId, sentence.enAudioUrl], ['gr', 'Greek', GREEK_VOICES, sentence.grVoiceId, sentence.grAudioUrl]] as const)
+              .filter(([lang]) => lang === 'en' || !!sentence.gr)
+              .map(([lang, label, voices, current]) => (
+                <div key={lang} className={styles.narratorRow}>
+                  <span className={styles.narratorLang}>{label}</span>
+                  {narrating === lang ? (
+                    <span className={styles.narratorBusy}>Narrating…</span>
+                  ) : (
+                    <select
+                      className={styles.voiceSelect}
+                      value={current ?? ''}
+                      onChange={e => e.target.value && setPendingVoice({ lang, voiceId: e.target.value })}
+                      disabled={narrating !== null}
+                    >
+                      {!current && <option value="">Not recorded — choose…</option>}
+                      {voices.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                    </select>
+                  )}
+                </div>
+              ))}
           </div>
 
           {/* Greek speed */}
@@ -288,6 +341,16 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack }: Pro
           )}
         </div>
       </div>
+
+      {pendingVoice && (
+        <ConfirmSheet
+          title="Change the narrator?"
+          message={`The ${pendingVoice.lang === 'gr' ? 'Greek' : 'English'} audio for this sentence will be narrated again by ${(pendingVoice.lang === 'gr' ? GREEK_VOICES : ENGLISH_VOICES).find(v => v.id === pendingVoice.voiceId)?.name ?? 'this voice'}. This uses ElevenLabs credits.`}
+          confirmLabel="Change narrator"
+          onConfirm={handleChangeVoice}
+          onCancel={() => setPendingVoice(null)}
+        />
+      )}
     </div>
   )
 }

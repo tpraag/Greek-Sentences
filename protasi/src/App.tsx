@@ -24,11 +24,12 @@ interface Nav {
   collectionId: string | null
   sentenceId: string | null
   screen: 'progress' | null
+  fromPlayer: { wasPlaying: boolean } | null   // sentence page opened from the player, which sits paused underneath
 }
 
 function AppInner() {
-  const { state } = useApp()
-  const [nav, setNav] = useState<Nav>({ tab: 'library', collectionId: null, sentenceId: null, screen: null })
+  const { state, pauseResume } = useApp()
+  const [nav, setNav] = useState<Nav>({ tab: 'library', collectionId: null, sentenceId: null, screen: null, fromPlayer: null })
   const [quickAdd, setQuickAdd] = useState(false)
 
   // Auth gate: undefined = still checking, null = signed out, User = signed in
@@ -59,16 +60,16 @@ function AppInner() {
   }
 
   function goToCollection(id: string) {
-    setNav({ tab: 'library', collectionId: id, sentenceId: null, screen: null })
+    setNav({ tab: 'library', collectionId: id, sentenceId: null, screen: null, fromPlayer: null })
   }
   function goToSentence(id: string) {
     setNav(n => ({ ...n, sentenceId: id }))
   }
   function goBackToLibrary() {
-    setNav({ tab: 'library', collectionId: null, sentenceId: null, screen: null })
+    setNav({ tab: 'library', collectionId: null, sentenceId: null, screen: null, fromPlayer: null })
   }
   function goBackToCollection() {
-    setNav(n => ({ ...n, sentenceId: null }))
+    setNav(n => ({ ...n, sentenceId: null, fromPlayer: null }))
   }
   function goToProgress() {
     setNav(n => ({ ...n, screen: 'progress' }))
@@ -76,7 +77,17 @@ function AppInner() {
   // From sentence search — jumps straight into a sentence without visiting its
   // collection first, unlike goToSentence which assumes collectionId is already set.
   function goToSentenceDirect(collectionId: string, sentenceId: string) {
-    setNav({ tab: 'library', collectionId, sentenceId, screen: null })
+    setNav({ tab: 'library', collectionId, sentenceId, screen: null, fromPlayer: null })
+  }
+  // From the player: same page, but the player stays (paused) underneath so "Player" can
+  // bring it straight back
+  function goToSentenceFromPlayer(collectionId: string, sentenceId: string, wasPlaying: boolean) {
+    setNav({ tab: 'library', collectionId, sentenceId, screen: null, fromPlayer: { wasPlaying } })
+  }
+  function returnToPlayer() {
+    const wasPlaying = nav.fromPlayer?.wasPlaying
+    setNav(n => ({ ...n, sentenceId: null, fromPlayer: null }))
+    if (wasPlaying && state.playback.active && state.playback.paused) pauseResume()
   }
 
   const showTabBar = !quickAdd && !nav.screen && !(state.playback.active && state.playback.view === 'immersive')
@@ -89,7 +100,8 @@ function AppInner() {
         <SentenceDetail
           sentenceId={nav.sentenceId}
           collectionId={nav.collectionId}
-          onBack={goBackToCollection}
+          onBack={nav.fromPlayer ? returnToPlayer : goBackToCollection}
+          fromPlayer={!!nav.fromPlayer}
         />
       ) : nav.collectionId ? (
         <CollectionView
@@ -114,13 +126,17 @@ function AppInner() {
         />
       )}
 
-      <ImmersivePlayer onEditSentence={goToSentenceDirect} />
+      <ImmersivePlayer
+        onEditSentence={goToSentenceDirect}
+        onOpenSentence={goToSentenceFromPlayer}
+        hidden={!!nav.fromPlayer && !!nav.sentenceId}
+      />
       {!nav.screen && <CompactPlayer />}
 
       {showTabBar && (
         <TabBar
           active={nav.tab}
-          onTab={t => setNav({ tab: t, collectionId: null, sentenceId: null, screen: null })}
+          onTab={t => setNav({ tab: t, collectionId: null, sentenceId: null, screen: null, fromPlayer: null })}
           onAdd={() => setQuickAdd(true)}
         />
       )}

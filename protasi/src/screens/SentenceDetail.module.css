@@ -237,3 +237,42 @@
   border: 1.5px solid var(--destructive);
   border-radius: 12px;
 }
+
+.narrator {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.narratorRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.narratorLang {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.voiceSelect {
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+  background: none;
+  border: none;
+  text-align: right;
+  max-width: 200px;
+}
+
+.narratorBusy {
+  font-size: 14px;
+  color: var(--ink-muted);
+}

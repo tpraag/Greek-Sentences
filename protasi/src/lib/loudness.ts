@@ -1,20 +1,25 @@
 // Some voices come out of ElevenLabs much quieter than others. Volume can't be raised at
-// playback (iPhones ignore it for web audio), so quiet narration is lifted in the audio
-// itself: measure how loud the speech is, and if it's below the target, boost it and
-// re-encode. Louder audio is never touched, and if anything goes wrong the original is
-// returned unchanged so narration can't break.
+// playback (iPhones ignore it for web audio), so narration is processed in the audio
+// itself, to a loud, consistent level:
+//   1. bring it to a common starting level,
+//   2. gently compress the peaks (so the voice can be lifted without distorting),
+//   3. lift it to the target level, with a soft limiter guarding against clipping.
+// If anything goes wrong the original is returned unchanged, so narration can't break.
 
-const TARGET_DB = -20     // average speech level to aim for (dBFS, RMS)
-const MAX_GAIN = 8        // never boost more than +18 dB
-const MIN_GAIN = 1.15     // already close enough — skip the re-encode
-const GATE_DB = -50       // ignore silence/pauses when measuring
-const KNEE = 0.7          // above this, peaks are softly compressed instead of clipping
+const TARGET_DB = -15         // average speech level to finish at (dBFS, RMS)
+const START_DB = -20          // level everything is brought to before compressing
+const MAX_GAIN = 10           // never boost more than +20 dB in the first step
+const GATE_DB = -50           // ignore silence/pauses when measuring
+const COMP_THRESHOLD_DB = -19 // peaks above this get compressed…
+const COMP_RATIO = 4          // …at this ratio
+const KNEE = 0.65             // above this, peaks are softly rounded instead of clipping…
+const CEILING = 0.85          // …and never exceed this (about -1.4 dBFS), leaving room for the MP3 encoder's overshoot
+const DONE_TOLERANCE_DB = 2   // already this close to the target means it's done (or loud enough already)
 
-// Rounds off peaks above KNEE toward ±1 so a boost can't distort
 function softLimit(x: number): number {
   const a = Math.abs(x)
   if (a <= KNEE) return x
-  const s = KNEE + (1 - KNEE) * Math.tanh((a - KNEE) / (1 - KNEE))
+  const s = KNEE + (CEILING - KNEE) * Math.tanh((a - KNEE) / (CEILING - KNEE))
   return x < 0 ? -s : s
 }
 
@@ -26,7 +31,7 @@ async function decode(blob: Blob): Promise<AudioBuffer> {
   return new Promise((resolve, reject) => { ctx.decodeAudioData(bytes, resolve, reject) })
 }
 
-// Average level of the speech itself (silence excluded), in dBFS
+// Average level of the speech itself (silence excluded), in dBFS, or null if there is none
 function speechLevelDb(samples: Float32Array, sampleRate: number): number | null {
   const frame = Math.max(1, Math.floor(sampleRate * 0.05))
   const gate = Math.pow(10, GATE_DB / 20)
@@ -35,11 +40,26 @@ function speechLevelDb(samples: Float32Array, sampleRate: number): number | null
   for (let start = 0; start + frame <= samples.length; start += frame) {
     let s = 0
     for (let i = start; i < start + frame; i++) s += samples[i] * samples[i]
-    const rms = Math.sqrt(s / frame)
-    if (rms > gate) { sumSquares += s; counted += frame }
+    if (Math.sqrt(s / frame) > gate) { sumSquares += s; counted += frame }
   }
   if (!counted) return null
   return 20 * Math.log10(Math.sqrt(sumSquares / counted))
+}
+
+// Simple peak compressor: fast attack, slower release
+function compress(samples: Float32Array, sampleRate: number): Float32Array {
+  const attack = Math.exp(-1 / (0.0015 * sampleRate))
+  const release = Math.exp(-1 / (0.1 * sampleRate))
+  const slope = 1 - 1 / COMP_RATIO
+  const out = new Float32Array(samples.length)
+  let env = 0
+  for (let i = 0; i < samples.length; i++) {
+    const a = Math.abs(samples[i])
+    env = a > env ? attack * env + (1 - attack) * a : release * env + (1 - release) * a
+    const over = 20 * Math.log10(Math.max(env, 1e-6)) - COMP_THRESHOLD_DB
+    out[i] = over > 0 ? samples[i] * Math.pow(10, (-over * slope) / 20) : samples[i]
+  }
+  return out
 }
 
 export async function levelAudio(blob: Blob): Promise<Blob> {
@@ -49,15 +69,24 @@ export async function levelAudio(blob: Blob): Promise<Blob> {
     const level = speechLevelDb(samples, buffer.sampleRate)
     if (level === null) return blob
 
-    const gain = Math.min(MAX_GAIN, Math.pow(10, (TARGET_DB - level) / 20))
-    if (gain < MIN_GAIN) return blob
+    // Already at the target level (processed earlier, or naturally loud) — leave it alone,
+    // so audio is never processed twice
+    if (Math.abs(level - TARGET_DB) < DONE_TOLERANCE_DB) return blob
 
-    const pcm = new Int16Array(samples.length)
-    for (let i = 0; i < samples.length; i++) {
-      pcm[i] = Math.round(softLimit(samples[i] * gain) * 32767)
+    const g1 = Math.min(MAX_GAIN, Math.pow(10, (START_DB - level) / 20))
+    const start = new Float32Array(samples.length)
+    for (let i = 0; i < samples.length; i++) start[i] = samples[i] * g1
+
+    const squashed = compress(start, buffer.sampleRate)
+    const squashedLevel = speechLevelDb(squashed, buffer.sampleRate) ?? START_DB
+    const g2 = Math.min(4, Math.pow(10, (TARGET_DB - squashedLevel) / 20))
+
+    const pcm = new Int16Array(squashed.length)
+    for (let i = 0; i < squashed.length; i++) {
+      pcm[i] = Math.round(softLimit(squashed[i] * g2) * 32767)
     }
 
-    // Loaded on demand — the encoder is only needed when something actually gets boosted
+    // Loaded on demand — the encoder is only needed when something actually gets processed
     const { Mp3Encoder } = await import('@breezystack/lamejs')
     const encoder = new Mp3Encoder(1, buffer.sampleRate, 128)
     const parts: Uint8Array[] = []

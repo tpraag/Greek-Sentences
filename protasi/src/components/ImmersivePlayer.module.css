@@ -39,9 +39,12 @@
   text-overflow: ellipsis;
 }
 
-.headerSpacer {
-  width: 14px;
-  flex-shrink: 0;
+.sentenceBtn {
+  color: rgba(255,255,255,.55);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .dots {
@@ -127,6 +130,18 @@
   font-size: 16px;
   color: #BFC2B8;
   text-align: center;
+}
+
+.repeatRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255,255,255,.55);
+  margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .scrub {

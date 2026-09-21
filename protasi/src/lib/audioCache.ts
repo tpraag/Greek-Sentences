@@ -6,19 +6,21 @@ import { levelAudio } from './loudness'
 // and doesn't support range-request slicing reliably. IndexedDB can hold up to ~20%
 // of device disk space and blobs served as Object URLs bypass the SW entirely,
 // avoiding the 206 Partial Content requirement for <audio> elements.
-// Everything stored here has been levelled (see lib/loudness.ts), so quiet voices sound
-// the same as the rest. This is a new store name so audio saved before levelling existed
-// is dropped once and fetched again, levelled — the old one is only emptied, never removed.
+// Everything stored here has been levelled (see lib/loudness.ts), so every voice sounds equally
+// loud. The store name changes whenever the levelling changes: audio saved under an older
+// name is emptied once (never removed) and fetched again, processed the new way.
 const store = localforage.createInstance({
   name: 'protasi',
-  storeName: 'audioLeveled',
+  storeName: 'audioLeveled2',
   description: 'Levelled audio blobs for offline playback',
 })
 
 try {
-  if (!localStorage.getItem('audioLeveledMigrated')) {
-    localforage.createInstance({ name: 'protasi', storeName: 'audio' }).clear()
-      .then(() => localStorage.setItem('audioLeveledMigrated', '1'))
+  if (!localStorage.getItem('audioLeveledMigrated2')) {
+    Promise.all(['audio', 'audioLeveled'].map(name =>
+      localforage.createInstance({ name: 'protasi', storeName: name }).clear(),
+    ))
+      .then(() => localStorage.setItem('audioLeveledMigrated2', '1'))
       .catch(() => { /* try again next launch */ })
   }
 } catch { /* storage unavailable — nothing to migrate */ }

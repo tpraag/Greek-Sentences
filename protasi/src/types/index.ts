@@ -148,4 +148,6 @@ export interface PlaybackState {
   gapSeconds: number
   greekSpeed: GreekSpeed
   progress: number           // 0–1, current audio position within the playing nugget
+  duration: number           // seconds, length of the current audio (0 until known)
+  gapEndsAt: number | null   // ms timestamp when the current gap ends, while in a gap
 }
