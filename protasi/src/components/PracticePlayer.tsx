@@ -141,7 +141,7 @@ export default function PracticePlayer({ word, items, audio, starred, onToggleSt
 
       <div className={styles.transport}>
         <button className={styles.skipBtn} onClick={() => goTo(idx - 1)} aria-label="Previous">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
             <path d="M6 5h2v14H6z"/>
             <path d="M18.5 5v14l-11-7 11-7z"/>
           </svg>
@@ -154,7 +154,7 @@ export default function PracticePlayer({ word, items, audio, starred, onToggleSt
           )}
         </button>
         <button className={styles.skipBtn} onClick={() => goTo(idx + 1)} aria-label="Next">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
             <path d="M16 5h2v14h-2z"/>
             <path d="M5.5 5v14l11-7-11-7z"/>
           </svg>

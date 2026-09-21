@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import type { WordInfo } from '../lib/api'
+import { findVerb } from '../lib/conjugation'
 import styles from './WordPracticeSetup.module.css'
 
 export interface PracticeParams {
@@ -13,6 +15,7 @@ interface Props {
   onParamsChange: (params: PracticeParams) => void
   onBack: () => void
   onGenerate: () => void
+  onOpenTable: (lemma: string) => void
 }
 
 const COUNTS = [1, 3, 5, 8]
@@ -25,8 +28,21 @@ const TENSES = ['Present', 'Past', 'Future', 'Imperative']
 // Controlled by the parent (rather than owning its own state) so navigating back from
 // Results to Setup shows exactly what was chosen before — the design's explicit
 // "regenerating with different settings is one tap away" requirement.
-export default function WordPracticeSetup({ info, params, onParamsChange, onBack, onGenerate }: Props) {
+export default function WordPracticeSetup({ info, params, onParamsChange, onBack, onGenerate, onOpenTable }: Props) {
   const isVerb = info.pos === 'verb'
+  const [tableLemma, setTableLemma] = useState<string | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    setTableLemma(null)
+    if (isVerb) {
+      // Built-in data first; otherwise the dictionary form Claude gave, or the word itself
+      findVerb(info.word)
+        .then(v => v?.lemma ?? info.lemma ?? info.word)
+        .catch(() => info.lemma ?? info.word)
+        .then(l => { if (!cancelled) setTableLemma(l) })
+    }
+    return () => { cancelled = true }
+  }, [info.word, info.lemma, isVerb])
   const { count, level, tenses } = params
 
   function toggleTense(t: string) {
@@ -86,7 +102,12 @@ export default function WordPracticeSetup({ info, params, onParamsChange, onBack
 
       {isVerb && (
         <div className={styles.section}>
-          <span className={styles.label}>Vary the conjugation</span>
+          <div className={styles.sectionHeader}>
+            <span className={styles.label}>Vary the conjugation</span>
+            {tableLemma && (
+              <button className={styles.tableLink} onClick={() => onOpenTable(tableLemma)}>Full table ›</button>
+            )}
+          </div>
           <p className={styles.subLabel}>Mix persons and tenses across the set</p>
           <div className={styles.pillRow}>
             {TENSES.map(t => (

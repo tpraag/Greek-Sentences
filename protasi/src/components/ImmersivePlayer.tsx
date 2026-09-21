@@ -8,6 +8,7 @@ import WordPopup from './WordPopup'
 import SaveToCollectionSheet from './SaveToCollectionSheet'
 import WordPracticeSetup, { type PracticeParams } from '../screens/WordPracticeSetup'
 import WordPracticeResults from '../screens/WordPracticeResults'
+import ConjugationTable from '../screens/ConjugationTable'
 import { COLOR_PALETTE, type PlaybackOrder, type GreekSpeed } from '../types'
 import styles from './ImmersivePlayer.module.css'
 
@@ -35,7 +36,6 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
   const [pickedWord, setPickedWord] = useState<string | null>(null)
   const [overflowOpen, setOverflowOpen] = useState(false)
   const [addToCollectionOpen, setAddToCollectionOpen] = useState(false)
-  const [recording, setRecording] = useState(false)
 
   // Word Practice sub-flow — see design_handoff_word_practice/README.md. Rendered in
   // place of the normal player body while active; returning to the player leaves
@@ -50,6 +50,7 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
   const [practiceInfo, setPracticeInfo] = useState<WordInfo | null>(null)
   const [practiceScreen, setPracticeScreen] = useState<'setup' | 'results'>('setup')
   const [practiceParams, setPracticeParams] = useState<PracticeParams>(defaultPracticeParams)
+  const [conj, setConj] = useState<{ lemma: string; word?: string; from: 'player' | 'practice' } | null>(null)
   const [pendingSave, setPendingSave] = useState<{
     items: GeneratedSentence[]; starred: Record<number, boolean>; audio: Record<number, AudioEntry>
   } | null>(null)
@@ -74,6 +75,11 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
     setPracticeParams(defaultPracticeParams())
     setPracticeScreen('setup')
     setPickedWord(null)
+  }
+
+  function openConjugation(lemma: string, word: string) {
+    if (playback.active && !playback.paused) pauseResume()
+    setConj({ lemma, word, from: 'player' })
   }
 
   function closePractice() {
@@ -137,6 +143,20 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
   // Word Practice sub-flow takes over the whole screen while active — its own screens
   // manage their own (light) background/padding, this wrapper is purely structural
   // (fixed overlay + scroll), unlike the dark player .screen below.
+  if (conj) {
+    return (
+      <div className={styles.practiceWrap}>
+        <ConjugationTable
+          lemma={conj.lemma}
+          word={conj.word}
+          backLabel={conj.from === 'practice' ? 'Practice' : 'Player'}
+          onBack={() => setConj(null)}
+          onPractice={info => { setConj(null); openPractice(info) }}
+        />
+      </div>
+    )
+  }
+
   if (practiceInfo) {
     return (
       <div className={styles.practiceWrap}>
@@ -147,6 +167,7 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
             onParamsChange={setPracticeParams}
             onBack={closePractice}
             onGenerate={() => setPracticeScreen('results')}
+            onOpenTable={lemma => setConj({ lemma, word: practiceInfo.word, from: 'practice' })}
           />
         ) : (
           <WordPracticeResults
@@ -217,8 +238,8 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
           <WordPopup
             word={pickedWord}
             sentence={current.gr}
-            onClose={() => setPickedWord(null)}
             onPracticeWord={openPractice}
+            onOpenConjugation={openConjugation}
           />
         )}
       </div>
@@ -251,20 +272,10 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
 
       <div className={styles.transport}>
         <button className={styles.transportBtn} onClick={prevSentence} aria-label="Previous">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
             <path d="M6 5h2v14H6z"/>
             <path d="M18.5 5v14l-11-7 11-7z"/>
           </svg>
-        </button>
-        <button
-          className={styles.recordBtn}
-          style={recording ? { background: '#C9A227' } : undefined}
-          onClick={() => {
-            setRecording(r => !r)
-            if (!recording) showToast('Recording — speak now, then compare')
-          }}
-        >
-          <span style={{ color: recording ? '#22261F' : 'rgba(255,255,255,.6)' }}>●</span>
         </button>
         <button
           className={`${styles.bigPlay} ${!playback.paused && !playback.inGap ? styles.bigPlayPulsing : ''}`}
@@ -276,11 +287,8 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
             <svg width="26" height="26" viewBox="0 0 24 24" fill="#22261F"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
           )}
         </button>
-        <button className={styles.modeBtn} onClick={() => setPlaybackOrder(cycle(ORDER_CYCLE, playback.order))}>
-          {ORDER_LABEL[playback.order]}
-        </button>
         <button className={styles.transportBtn} onClick={nextSentence} aria-label="Next">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
             <path d="M16 5h2v14h-2z"/>
             <path d="M5.5 5v14l11-7-11-7z"/>
           </svg>
@@ -302,6 +310,10 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
         <button className={styles.knob} onClick={() => setGapSeconds(cycle(GAP_CYCLE, playback.gapSeconds))}>
           <span className={styles.knobCaption}>Gap</span>
           <span className={styles.knobValue}>{playback.gapSeconds}s</span>
+        </button>
+        <button className={styles.knob} onClick={() => setPlaybackOrder(cycle(ORDER_CYCLE, playback.order))}>
+          <span className={styles.knobCaption}>Mode</span>
+          <span className={styles.knobValue}>{ORDER_LABEL[playback.order]}</span>
         </button>
         <button className={styles.overflowBtn} onClick={() => setOverflowOpen(true)} aria-label="More">⋯</button>
       </div>

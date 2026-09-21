@@ -56,10 +56,12 @@ export interface WordInfo {
   word: string
   gloss: string
   pos: string
+  lemma?: string          // for verbs: the dictionary form, when known
 }
 
 export interface WordGrammar {
   pos: string
+  lemma: string | null    // for verbs: the dictionary form
   gender: string | null   // masculine | feminine | neuter, when the word has one
   details: string         // e.g. "past · 1st person singular"
 }
@@ -122,4 +124,16 @@ export async function updateAccount(uid: string, action: 'approve' | 'reject' | 
     body: JSON.stringify({ uid, action }),
   })
   if (!res.ok) throw new Error('Failed to update account')
+}
+
+// A verb's conjugation table from Claude, in the same shape as the built-in verb data
+// (see src/lib/conjugation.ts). Slow, so callers cache the result.
+export async function getConjugation(lemma: string): Promise<Record<string, unknown>> {
+  const res = await fetch('/api/conjugation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+    body: JSON.stringify({ lemma }),
+  })
+  if (!res.ok) throw new Error('Could not build conjugation table')
+  return res.json()
 }

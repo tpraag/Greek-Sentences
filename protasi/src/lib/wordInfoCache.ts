@@ -15,7 +15,8 @@ const store = localforage.createInstance({
 export async function getWordGrammarCached(word: string, context?: string): Promise<WordGrammar> {
   const clean = normalizeWord(word)
   const cached = await store.getItem<WordGrammar>(clean)
-  if (cached) return cached
+  // Entries saved before the dictionary form was added have no `lemma` key — ask again
+  if (cached && cached.lemma !== undefined) return cached
   const grammar = await getWordGrammar(clean, context)
   await store.setItem(clean, grammar)
   return grammar

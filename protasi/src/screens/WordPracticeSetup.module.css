@@ -146,3 +146,10 @@
   color: #9A9A8E;
   margin-top: 14px;
 }
+
+.tableLink {
+  font-size: 13px;
+  font-weight: 600;
+  color: #5B7D6B;
+  white-space: nowrap;
+}
