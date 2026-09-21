@@ -1,15 +1,27 @@
 import localforage from 'localforage'
+import { levelAudio } from './loudness'
 
 // IndexedDB store for audio blobs.
 // We use IndexedDB (not CacheStorage) because iOS Safari caps CacheStorage at 50MB
 // and doesn't support range-request slicing reliably. IndexedDB can hold up to ~20%
 // of device disk space and blobs served as Object URLs bypass the SW entirely,
 // avoiding the 206 Partial Content requirement for <audio> elements.
+// Everything stored here has been levelled (see lib/loudness.ts), so quiet voices sound
+// the same as the rest. This is a new store name so audio saved before levelling existed
+// is dropped once and fetched again, levelled — the old one is only emptied, never removed.
 const store = localforage.createInstance({
   name: 'protasi',
-  storeName: 'audio',
-  description: 'Audio blobs for offline playback',
+  storeName: 'audioLeveled',
+  description: 'Levelled audio blobs for offline playback',
 })
+
+try {
+  if (!localStorage.getItem('audioLeveledMigrated')) {
+    localforage.createInstance({ name: 'protasi', storeName: 'audio' }).clear()
+      .then(() => localStorage.setItem('audioLeveledMigrated', '1'))
+      .catch(() => { /* try again next launch */ })
+  }
+} catch { /* storage unavailable — nothing to migrate */ }
 
 export async function cacheAudioBlob(url: string, blob: Blob): Promise<void> {
   await store.setItem(url, blob)
@@ -30,7 +42,7 @@ export async function fetchAndCache(url: string): Promise<void> {
     if (await store.getItem<Blob>(url)) return // already cached
     const response = await fetch(url)
     if (!response.ok) return
-    await store.setItem(url, await response.blob())
+    await store.setItem(url, await levelAudio(await response.blob()))
   } catch {
     /* CORS not configured or offline — will retry next time */
   }

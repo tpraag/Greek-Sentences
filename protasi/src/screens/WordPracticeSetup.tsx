@@ -7,6 +7,8 @@ export interface PracticeParams {
   count: number
   level: string
   tenses: string[]
+  genders: string[]
+  numbers: string[]
 }
 
 interface Props {
@@ -24,12 +26,15 @@ const LEVEL_HINT: Record<string, string> = {
   A1: 'Very simple', A2: 'Simple everyday', B1: 'Conversational', B2: 'Fluent, longer', C1: 'Nuanced',
 }
 const TENSES = ['Present', 'Past', 'Future', 'Imperative']
+const GENDERS = ['Masculine', 'Feminine', 'Neuter']
+const NUMBERS = ['Singular', 'Plural']
 
 // Controlled by the parent (rather than owning its own state) so navigating back from
 // Results to Setup shows exactly what was chosen before — the design's explicit
 // "regenerating with different settings is one tap away" requirement.
 export default function WordPracticeSetup({ info, params, onParamsChange, onBack, onGenerate, onOpenTable }: Props) {
   const isVerb = info.pos === 'verb'
+  const isAdjective = info.pos === 'adjective'
   const [tableLemma, setTableLemma] = useState<string | null>(null)
   useEffect(() => {
     let cancelled = false
@@ -43,12 +48,20 @@ export default function WordPracticeSetup({ info, params, onParamsChange, onBack
     }
     return () => { cancelled = true }
   }, [info.word, info.lemma, isVerb])
-  const { count, level, tenses } = params
+  const { count, level, tenses, genders, numbers } = params
 
   function toggleTense(t: string) {
     const on = tenses.includes(t)
     if (on && tenses.length === 1) return // keep a floor of one selected
     onParamsChange({ ...params, tenses: on ? tenses.filter(x => x !== t) : [...tenses, t] })
+  }
+
+  // Same rule as the tense pills: keep at least one selected
+  function toggleIn(key: 'genders' | 'numbers', value: string) {
+    const list = params[key]
+    const on = list.includes(value)
+    if (on && list.length === 1) return
+    onParamsChange({ ...params, [key]: on ? list.filter(x => x !== value) : [...list, value] })
   }
 
   return (
@@ -117,6 +130,37 @@ export default function WordPracticeSetup({ info, params, onParamsChange, onBack
                 onClick={() => toggleTense(t)}
               >
                 {t}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isAdjective && (
+        <div className={styles.section}>
+          <span className={styles.label}>Vary the forms</span>
+          <p className={styles.subLabel}>Mix genders and numbers across the set</p>
+          <p className={styles.miniLabel}>Gender</p>
+          <div className={styles.pillRow}>
+            {GENDERS.map(g => (
+              <button
+                key={g}
+                className={`${styles.pill} ${genders.includes(g) ? styles.pillActive : ''}`}
+                onClick={() => toggleIn('genders', g)}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
+          <p className={styles.miniLabel}>Number</p>
+          <div className={styles.pillRow}>
+            {NUMBERS.map(n => (
+              <button
+                key={n}
+                className={`${styles.pill} ${numbers.includes(n) ? styles.pillActive : ''}`}
+                onClick={() => toggleIn('numbers', n)}
+              >
+                {n}
               </button>
             ))}
           </div>

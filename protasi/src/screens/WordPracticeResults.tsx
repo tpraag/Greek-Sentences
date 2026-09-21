@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../store'
-import { generatePracticeSentences, generateSpeech, type WordInfo, type GeneratedSentence } from '../lib/api'
+import { generatePracticeSentences, generateSpeech, translateGreekWordToEnglish, type WordInfo, type GeneratedSentence } from '../lib/api'
+import { disagrees } from '../lib/sentenceCheck'
 import PracticePlayer from '../components/PracticePlayer'
 import type { PracticeParams } from './WordPracticeSetup'
 import styles from './WordPracticeResults.module.css'
@@ -20,6 +21,8 @@ export default function WordPracticeResults({ info, params, onBack, onSave }: Pr
   const [errored, setErrored] = useState(false)
   const [items, setItems] = useState<GeneratedSentence[]>([])
   const [starred, setStarred] = useState<Record<number, boolean>>({})
+  // Sentences whose meaning Google Translate reads differently from Claude's — index → Google's English
+  const [flags, setFlags] = useState<Record<number, string>>({})
   const [playingIdx, setPlayingIdx] = useState<number | null>(null)
   const [playerOpen, setPlayerOpen] = useState(false)
   const [audio, setAudio] = useState<Record<number, AudioEntry>>({})
@@ -30,15 +33,24 @@ export default function WordPracticeResults({ info, params, onBack, onSave }: Pr
     setErrored(false)
     setItems([])
     setStarred({})
+    setFlags({})
     setAudio({})
     try {
       const sentences = await generatePracticeSentences({
         word: info.word, gloss: info.gloss, pos: info.pos,
         count: params.count, level: params.level, tenses: params.tenses,
+        genders: params.genders, numbers: params.numbers, avoid: info.sentence,
       })
       if (!sentences.length) throw new Error('empty')
       setItems(sentences)
       setLoading(false)
+      // Independent second opinion, in parallel with everything else: read each Greek
+      // sentence back into English and flag any that don't match what Claude says it means
+      sentences.forEach((s, i) => {
+        translateGreekWordToEnglish(s.greek)
+          .then(g => { if (disagrees(s.english, g)) setFlags(f => ({ ...f, [i]: g })) })
+          .catch(() => { /* no check available — say nothing */ })
+      })
       // Audio ready up front, not on first tap — generate every row's Greek narration
       // in the background as soon as the list arrives, one at a time so we don't burst
       // the TTS API. Each row's play button lights up as its audio finishes.
@@ -134,6 +146,9 @@ export default function WordPracticeResults({ info, params, onBack, onSave }: Pr
                 <p className={`${styles.greek} serif`}>{it.greek}</p>
                 <p className={styles.english}>{it.english}</p>
                 {it.note && <p className={styles.note}>{it.note}</p>}
+                {flags[i] && (
+                  <p className={styles.flag}>Worth double-checking — Google reads this as “{flags[i]}”</p>
+                )}
               </div>
               <button className={styles.star} onClick={() => toggleStar(i)}>
                 <span style={{ color: starred[i] ? '#C9A227' : '#C9C6BA' }}>{starred[i] ? '★' : '☆'}</span>

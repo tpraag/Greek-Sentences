@@ -1,3 +1,4 @@
+import { levelAudio } from './loudness'
 // Calls our Vercel serverless proxy — API keys never leave the server.
 // Every route requires a valid signed-in, invited user (see api/_lib/verifyAuth.ts).
 
@@ -42,7 +43,8 @@ export async function generateSpeech(text: string, voiceId: string): Promise<Blo
     console.error('TTS failed:', res.status, detail)
     throw new Error(`TTS failed: ${res.status} ${detail}`)
   }
-  return res.blob()
+  // Quiet voices are lifted to a consistent level (see lib/loudness.ts)
+  return levelAudio(await res.blob())
 }
 
 export async function listElevenLabsVoices(): Promise<{ voice_id: string; name: string }[]> {
@@ -57,6 +59,7 @@ export interface WordInfo {
   gloss: string
   pos: string
   lemma?: string          // for verbs: the dictionary form, when known
+  sentence?: string       // the Greek sentence the word was tapped in — practice avoids repeating it
 }
 
 export interface WordGrammar {
@@ -86,6 +89,7 @@ export interface GeneratedSentence {
 
 export async function generatePracticeSentences(params: {
   word: string; gloss: string; pos: string; count: number; level: string; tenses: string[]
+  genders?: string[]; numbers?: string[]; avoid?: string
 }): Promise<GeneratedSentence[]> {
   const res = await fetch('/api/generate-practice', {
     method: 'POST',

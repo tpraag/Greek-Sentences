@@ -180,3 +180,10 @@
   font-size: 16px;
   font-weight: 600;
 }
+
+.flag {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #B7791F;
+  margin-top: 6px;
+}

@@ -45,6 +45,8 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
       count: state.settings.practiceDefaultCount ?? 3,
       level: state.settings.practiceDefaultLevel ?? 'A2',
       tenses: ['Present', 'Past', 'Future'],
+      genders: ['Masculine', 'Feminine', 'Neuter'],
+      numbers: ['Singular', 'Plural'],
     }
   }
   const [practiceInfo, setPracticeInfo] = useState<WordInfo | null>(null)
@@ -71,7 +73,8 @@ export default function ImmersivePlayer({ onEditSentence }: Props) {
 
   function openPractice(info: WordInfo) {
     if (playback.active && !playback.paused) pauseResume()
-    setPracticeInfo(info)
+    // Remember the sentence being played so the generated set never repeats it
+    setPracticeInfo({ ...info, sentence: info.sentence ?? current?.gr ?? undefined })
     setPracticeParams(defaultPracticeParams())
     setPracticeScreen('setup')
     setPickedWord(null)
