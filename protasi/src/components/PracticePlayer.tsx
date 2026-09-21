@@ -17,7 +17,7 @@ interface Props {
 
 const SPEED_CYCLE: GreekSpeed[] = [0.7, 0.85, 1.0]
 const REPEAT_CYCLE = [1, 2, 3, 0] // 0 = ∞
-const GAP_CYCLE = [3, 5, 7, 10]
+const GAP_CYCLE = [3, 5, 7, 8, 10]
 
 function cycle<T>(arr: T[], value: T): T {
   return arr[(arr.indexOf(value) + 1) % arr.length]

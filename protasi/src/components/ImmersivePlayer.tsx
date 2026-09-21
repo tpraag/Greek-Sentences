@@ -16,7 +16,7 @@ const ORDER_CYCLE: PlaybackOrder[] = ['en', 'gr', 'en-gr', 'gr-en']
 const ORDER_LABEL: Record<PlaybackOrder, string> = { en: 'E', gr: 'G', 'en-gr': 'E→G', 'gr-en': 'G→E' }
 const SPEED_CYCLE: GreekSpeed[] = [0.7, 0.85, 1.0]
 const REPEAT_CYCLE = [1, 2, 3, 0] // 0 = ∞
-const GAP_CYCLE = [3, 5, 7, 10]
+const GAP_CYCLE = [3, 5, 7, 8, 10]
 const MAX_DOTS = 12
 
 interface AudioEntry { blob: Blob; url: string }
