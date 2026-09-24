@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../store'
-import { generatePracticeSentences, generateSpeech, translateGreekWordToEnglish, type WordInfo, type GeneratedSentence } from '../lib/api'
+import { generatePracticeSentences, generateSpeech, translateGreekBatch, type WordInfo, type GeneratedSentence } from '../lib/api'
 import { disagrees } from '../lib/sentenceCheck'
 import { highlightPieces } from '../lib/practiceHighlight'
 import PracticePlayer from '../components/PracticePlayer'
@@ -50,11 +50,11 @@ export default function WordPracticeResults({ info, params, onBack, onSave }: Pr
       setLoading(false)
       // Independent second opinion, in parallel with everything else: read each Greek
       // sentence back into English and flag any that don't match what Claude says it means
-      sentences.forEach((s, i) => {
-        translateGreekWordToEnglish(s.greek)
-          .then(g => { if (disagrees(s.english, g)) setFlags(f => ({ ...f, [i]: g })) })
-          .catch(() => { /* no check available — say nothing */ })
-      })
+      translateGreekBatch(sentences.map(s => s.greek))
+        .then(reads => reads.forEach((g, i) => {
+          if (disagrees(sentences[i].english, g)) setFlags(f => ({ ...f, [i]: g }))
+        }))
+        .catch(() => { /* no check available — say nothing */ })
       // Audio ready up front, not on first tap — generate every row's Greek narration
       // in the background as soon as the list arrives, one at a time so we don't burst
       // the TTS API. Each row's play button lights up as its audio finishes.

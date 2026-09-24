@@ -1,5 +1,5 @@
 import localforage from 'localforage'
-import { translateGreekWordToEnglish } from './api'
+import { translateGreekWordToEnglish, translateGreekBatch } from './api'
 
 // IndexedDB store for per-word Greek→English translations.
 // Text is tiny (tens of bytes per word), so this is essentially free storage-wise.
@@ -35,20 +35,22 @@ export async function translateWordCached(word: string): Promise<string> {
 }
 
 // Background pre-cache: translate every unique word in a Greek sentence and store it,
-// so individual word taps are instant and work offline later. Runs sequentially with
-// a small gap to stay gentle on the Translate API; failures are ignored per-word.
+// so individual word taps are instant and work offline later. All uncached words go in a
+// single request; a failure is ignored (they'll be fetched on tap, or next time).
 export async function precacheWords(greekText: string): Promise<void> {
   if (!greekText) return
   const words = Array.from(
     new Set(greekText.split(/\s+/).map(normalizeWord).filter(w => w.length > 1))
   )
-  for (const word of words) {
-    try {
-      if (await store.getItem<string>(word)) continue
-      const translation = await translateGreekWordToEnglish(word)
-      await store.setItem(word, translation)
-    } catch {
-      /* skip this word — will be retried next time the sentence is processed */
+  try {
+    const missing: string[] = []
+    for (const w of words) if (!(await store.getItem<string>(w))) missing.push(w)
+    if (!missing.length) return
+    const translations = await translateGreekBatch(missing)
+    for (let i = 0; i < missing.length; i++) {
+      if (translations[i]) await store.setItem(missing[i], translations[i])
     }
+  } catch {
+    /* skip — will be retried next time the sentence is processed */
   }
 }

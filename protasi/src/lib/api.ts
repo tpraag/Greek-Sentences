@@ -39,6 +39,22 @@ export async function translateGreekWordToEnglish(word: string): Promise<string>
   return data.translation as string
 }
 
+// Several Greek texts in one request (one call instead of one per word/sentence).
+export async function translateGreekBatch(texts: string[]): Promise<string[]> {
+  const res = await fetch('/api/translate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+    body: JSON.stringify({ texts, source: 'el', target: 'en' }),
+  })
+  if (!res.ok) {
+    const detail = await res.json().then(d => d?.error, () => null)
+    console.error('Translation failed:', res.status, detail)
+    throw new Error(`Translation failed: ${detail ?? res.statusText}`)
+  }
+  const data = await res.json()
+  return data.translations as string[]
+}
+
 export async function generateSpeech(text: string, voiceId: string): Promise<Blob> {
   const res = await fetch('/api/tts', {
     method: 'POST',
