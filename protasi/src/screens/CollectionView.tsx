@@ -5,6 +5,7 @@ import NewCollectionPanel from '../components/NewCollectionPanel'
 import PlaySetupSheet from '../components/PlaySetupSheet'
 import SwipeToDelete from '../components/SwipeToDelete'
 import StatusDot from '../components/StatusDot'
+import ConfirmSheet from '../components/ConfirmSheet'
 import { isMastered } from '../lib/mastery'
 import type { IconName, CollectionColor, Sentence } from '../types'
 import styles from './CollectionView.module.css'
@@ -15,8 +16,13 @@ interface Props {
   onSentence: (id: string) => void
 }
 
+// Rows swipe to delete normally; while selecting, swiping is off so a tap only toggles.
+function Wrapper({ selecting, onDelete, children }: { selecting: boolean; onDelete: () => void; children: React.ReactNode }) {
+  return selecting ? <div>{children}</div> : <SwipeToDelete onDelete={onDelete}>{children}</SwipeToDelete>
+}
+
 export default function CollectionView({ collectionId, onBack, onSentence }: Props) {
-  const { state, updateCollection, deleteCollection, translateSentence, updateSentence, deleteSentence, startPlayback, pauseResume } = useApp()
+  const { state, updateCollection, deleteCollection, translateSentence, updateSentence, deleteSentence, moveSentence, generateAudio, showToast, startPlayback, pauseResume } = useApp()
   const [menuOpen, setMenuOpen] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [renameVal, setRenameVal] = useState('')
@@ -24,6 +30,11 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
   const [playSetup, setPlaySetup] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
+  // Multi-select: pick sentences, then move / delete / regenerate their Greek audio together
+  const [selecting, setSelecting] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkSheet, setBulkSheet] = useState<'move' | 'delete' | 'regen' | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
 
   const col = state.collections.find(c => c.id === collectionId)
   const sentences = state.sentences[collectionId] ?? []
@@ -62,6 +73,63 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
   const visibleSentences = q
     ? sentences.filter(s => s.en.toLowerCase().includes(q) || (s.gr ?? '').toLowerCase().includes(q))
     : sentences
+
+  function stopSelecting() {
+    setSelecting(false)
+    setSelected(new Set())
+  }
+
+  function toggleSelected(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const selectedIds = sentences.filter(s => selected.has(s.id)).map(s => s.id)
+  const allVisibleSelected = visibleSentences.length > 0 && visibleSentences.every(s => selected.has(s.id))
+
+  async function bulkMove(toId: string) {
+    setBulkSheet(null)
+    const toName = state.collections.find(c => c.id === toId)?.name ?? 'collection'
+    setBusy('Moving…')
+    let failed = 0
+    for (const id of selectedIds) {
+      try { await moveSentence(id, collectionId, toId) } catch { failed++ }
+    }
+    setBusy(null)
+    stopSelecting()
+    showToast(failed ? `Moved with ${failed} failed` : `Moved ${selectedIds.length} to ${toName}`)
+  }
+
+  async function bulkDelete() {
+    setBulkSheet(null)
+    setBusy('Deleting…')
+    let failed = 0
+    for (const id of selectedIds) {
+      try { await deleteSentence(id, collectionId) } catch { failed++ }
+    }
+    setBusy(null)
+    stopSelecting()
+    showToast(failed ? `Deleted with ${failed} failed` : `Deleted ${selectedIds.length}`)
+  }
+
+  // Greek narration only, one at a time so the TTS service isn't flooded; sentences without
+  // Greek yet are skipped. Old audio stays until each new one is ready.
+  async function bulkRegenGreek() {
+    setBulkSheet(null)
+    const ids = sentences.filter(s => selected.has(s.id) && s.gr).map(s => s.id)
+    let failed = 0
+    for (let i = 0; i < ids.length; i++) {
+      setBusy(`Regenerating ${i + 1} of ${ids.length}…`)
+      try { await generateAudio(ids[i], collectionId, 'gr') } catch { failed++ }
+    }
+    setBusy(null)
+    stopSelecting()
+    showToast(failed ? `Regenerated ${ids.length - failed}, ${failed} failed` : `Regenerated Greek audio for ${ids.length}`)
+  }
 
   function closeSearch() {
     setSearchOpen(false)
@@ -146,6 +214,13 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
             </button>
+            {sentences.length > 0 && (
+              <button className={styles.iconBtn} onClick={() => (selecting ? stopSelecting() : setSelecting(true))} aria-label="Select sentences">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9.5"/>
+                </svg>
+              </button>
+            )}
             <button className={styles.menuBtn} onClick={() => setMenuOpen(true)}>•••</button>
           </div>
         </div>
@@ -176,7 +251,18 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
       </div>
 
       {/* Play all bar */}
-      {translated.length > 0 && (
+      {selecting && (
+        <div className={styles.selectBar}>
+          <span className={styles.selectCount}>{selectedIds.length ? `${selectedIds.length} selected` : 'Select sentences'}</span>
+          <div className={styles.selectActions}>
+            <button onClick={() => setSelected(allVisibleSelected ? new Set() : new Set(visibleSentences.map(s => s.id)))}>
+              {allVisibleSelected ? 'Clear' : 'Select all'}
+            </button>
+            <button onClick={stopSelecting}>Done</button>
+          </div>
+        </div>
+      )}
+      {!selecting && translated.length > 0 && (
         <div
           className={styles.playBar}
           role="button"
@@ -205,19 +291,26 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
       )}
 
       {/* Sentence list */}
-      <div className={`screen-scroll ${state.playback.active ? 'with-player' : ''}`} style={{ paddingTop: 0 }}>
+      <div className={`screen-scroll ${state.playback.active ? 'with-player' : ''}`} style={{ paddingTop: 0, ...(selecting ? { paddingBottom: 'calc(var(--tab-h) + var(--safe-bottom) + 110px)' } : {}) }}>
         <div className={styles.list}>
           {visibleSentences.map(s => {
             const isPlaying = state.playback.active && state.playback.queue[state.playback.qpos] === s.id
             return (
-              <SwipeToDelete key={s.id} onDelete={() => deleteSentence(s.id, collectionId)}>
+              <Wrapper key={s.id} selecting={selecting} onDelete={() => deleteSentence(s.id, collectionId)}>
                 <div
                   ref={isPlaying ? playingRowRef : null}
                   className={`${styles.row} ${isPlaying ? styles.playing : ''}`}
-                  onClick={() => onSentence(s.id)}
+                  onClick={() => (selecting ? toggleSelected(s.id) : onSentence(s.id))}
                   role="button"
                   tabIndex={0}
                 >
+                  {selecting ? (
+                    <span className={`${styles.check} ${selected.has(s.id) ? styles.checkOn : ''}`} aria-hidden>
+                      {selected.has(s.id) && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 12.5 10 18.5 20 6.5"/></svg>
+                      )}
+                    </span>
+                  ) : (
                   <button
                     className={`${styles.playBtn} ${isPlaying ? styles.playBtnActive : ''}`}
                     style={{ opacity: s.gr ? 1 : 0.4 }}
@@ -238,6 +331,7 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
                       </svg>
                     )}
                   </button>
+                  )}
                   <div className={styles.textGroup}>
                     {s.gr ? (
                       <span className={`${styles.gr} serif`}>{s.gr}</span>
@@ -249,7 +343,7 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
                     <span className={styles.en}>{s.en}</span>
                   </div>
                   <StatusDot sentence={s} />
-                  <button
+                  {!selecting && <button
                     className={styles.favBtn}
                     onClick={e => {
                       e.stopPropagation()
@@ -257,9 +351,9 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
                     }}
                   >
                     {s.fav ? '★' : '☆'}
-                  </button>
+                  </button>}
                 </div>
-              </SwipeToDelete>
+              </Wrapper>
             )
           })}
           {visibleSentences.length === 0 && (
@@ -306,6 +400,67 @@ export default function CollectionView({ collectionId, onBack, onSentence }: Pro
             />
           </div>
         </div>
+      )}
+
+      {/* Bulk action bar */}
+      {selecting && (
+        <div className={`${styles.actionBar} ${state.playback.active ? styles.actionBarLifted : ''}`}>
+          {busy ? (
+            <span className={styles.busy}>{busy}</span>
+          ) : (
+            <>
+              <button disabled={!selectedIds.length} onClick={() => setBulkSheet('move')}>Move</button>
+              <button disabled={!selectedIds.length} onClick={() => setBulkSheet('regen')}>Regenerate Greek</button>
+              <button className={styles.actionDanger} disabled={!selectedIds.length} onClick={() => setBulkSheet('delete')}>Delete</button>
+            </>
+          )}
+        </div>
+      )}
+
+      {bulkSheet === 'move' && (
+        <div className="sheet-overlay" onClick={() => setBulkSheet(null)}>
+          <div className="sheet" onClick={e => e.stopPropagation()}>
+            <div className="sheet-handle" />
+            <h3 className={styles.sheetTitle}>Move {selectedIds.length} to…</h3>
+            <div className={styles.menuList}>
+              {state.collections.filter(c => c.id !== collectionId).map((c, i) => (
+                <div key={c.id}>
+                  {i > 0 && <div className="hairline" />}
+                  <button className={`${styles.menuItem} ${styles.moveItem}`} onClick={() => bulkMove(c.id)}>
+                    <span className={styles.moveIcon} style={{ background: c.color.bg }}>
+                      <CollectionIcon icon={c.icon} accent={c.color.accent} size={16} />
+                    </span>
+                    {c.name}
+                  </button>
+                </div>
+              ))}
+              {state.collections.length < 2 && <p className={styles.empty}>No other collections yet.</p>}
+              <div className="hairline" />
+              <button className={styles.menuItem} onClick={() => setBulkSheet(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bulkSheet === 'delete' && (
+        <ConfirmSheet
+          title={`Delete ${selectedIds.length} sentence${selectedIds.length !== 1 ? 's' : ''}?`}
+          message="They will be removed permanently, along with their narration."
+          confirmLabel="Delete"
+          destructive
+          onConfirm={bulkDelete}
+          onCancel={() => setBulkSheet(null)}
+        />
+      )}
+
+      {bulkSheet === 'regen' && (
+        <ConfirmSheet
+          title="Regenerate Greek audio?"
+          message={`The Greek narration for ${sentences.filter(s => selected.has(s.id) && s.gr).length} sentence(s) will be recorded again with each sentence's narrator. This uses ElevenLabs credits.`}
+          confirmLabel="Regenerate"
+          onConfirm={bulkRegenGreek}
+          onCancel={() => setBulkSheet(null)}
+        />
       )}
 
       {/* Play setup sheet */}

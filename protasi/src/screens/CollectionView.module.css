@@ -305,3 +305,70 @@
   text-align: center;
   margin-bottom: 16px;
 }
+
+.selectBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 24px 4px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--accent-tint);
+  flex-shrink: 0;
+}
+.selectCount { font-size: 14px; font-weight: 600; color: var(--accent); }
+.selectActions { display: flex; gap: 14px; }
+.selectActions button { font-size: 14px; font-weight: 600; color: var(--accent); }
+
+.check {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--ink-placeholder);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background .15s, border-color .15s;
+}
+.checkOn { background: var(--accent); border-color: var(--accent); }
+
+.actionBar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--tab-h) + var(--safe-bottom) + 10px);
+  width: calc(100% - 32px);
+  max-width: 398px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 18px;
+  background: var(--dark-bar);
+  box-shadow: 0 8px 28px rgba(0,0,0,.25);
+  z-index: 60;
+}
+.actionBarLifted { bottom: calc(var(--tab-h) + var(--safe-bottom) + 108px); }
+.actionBar button {
+  flex: 1;
+  padding: 12px 6px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255,255,255,.1);
+}
+.actionBar button:disabled { opacity: .4; }
+.actionBar .actionDanger { color: #ff9b86; }
+.busy { flex: 1; text-align: center; padding: 12px 6px; font-size: 13px; font-weight: 600; color: #fff; }
+
+.moveItem { display: flex; align-items: center; gap: 12px; }
+.moveIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}

@@ -138,10 +138,19 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack, fromP
     await translateSentence(sentenceId, collectionId)
   }
 
-  async function handleRegenAudio() {
-    await updateSentence(sentenceId, collectionId, { enAudioUrl: null, grAudioUrl: null })
-    if (sentence.en) await generateAudio(sentenceId, collectionId, 'en')
-    if (sentence.gr) await generateAudio(sentenceId, collectionId, 'gr')
+  // One language at a time — Greek is the one that matters, so English is opt-in. The old
+  // audio stays in place until the new one is ready, so a failure loses nothing.
+  async function handleRegenAudio(lang: 'en' | 'gr') {
+    if (narrating) return
+    setNarrating(lang)
+    try {
+      await generateAudio(sentenceId, collectionId, lang)
+      showToast(lang === 'gr' ? 'Greek audio regenerated' : 'English audio regenerated')
+    } catch {
+      showToast('Could not regenerate the audio')
+    } finally {
+      setNarrating(null)
+    }
   }
 
   async function handleMove(newCollectionId: string) {
@@ -374,8 +383,15 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack, fromP
           {/* Re-generate buttons */}
           <div className={styles.regenRow}>
             <button className="btn-outline" onClick={handleRetranslate}>Re-translate</button>
-            <button className="btn-outline" onClick={handleRegenAudio}>Regenerate audio</button>
+            {sentence.gr && (
+              <button className="btn-outline" onClick={() => handleRegenAudio('gr')} disabled={narrating !== null}>
+                {narrating === 'gr' ? 'Regenerating…' : 'Regenerate Greek audio'}
+              </button>
+            )}
           </div>
+          <button className={styles.textLink} onClick={() => handleRegenAudio('en')} disabled={narrating !== null}>
+            {narrating === 'en' ? 'Regenerating English audio…' : 'Regenerate English audio'}
+          </button>
 
           {/* Delete sentence — kept away from the regenerate buttons, quiet, and confirmed */}
           <div className={styles.dangerZone}>

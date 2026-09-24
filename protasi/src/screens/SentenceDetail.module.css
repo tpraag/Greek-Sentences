@@ -226,6 +226,16 @@
   padding: 10px 12px;
 }
 
+.textLink {
+  display: block;
+  margin: 10px auto 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+.textLink:disabled { opacity: .6; }
+
 .dangerZone {
   margin-top: 36px;
   padding-top: 8px;
