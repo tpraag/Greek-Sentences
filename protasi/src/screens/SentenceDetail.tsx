@@ -382,12 +382,10 @@ export default function SentenceDetail({ sentenceId, collectionId, onBack, fromP
 
           {/* Re-generate buttons */}
           <div className={styles.regenRow}>
-            <button className="btn-outline" onClick={handleRetranslate}>Re-translate</button>
-            {sentence.gr && (
-              <button className="btn-outline" onClick={() => handleRegenAudio('gr')} disabled={narrating !== null}>
-                {narrating === 'gr' ? 'Regenerating…' : 'Regenerate Greek audio'}
-              </button>
-            )}
+            <button className="btn-outline" onClick={handleRetranslate}>{sentence.gr ? 'Re-translate' : 'Translate'}</button>
+            <button className="btn-outline" onClick={() => handleRegenAudio('gr')} disabled={!sentence.gr || narrating !== null}>
+              {narrating === 'gr' ? 'Regenerating…' : 'Regenerate Greek audio'}
+            </button>
           </div>
           <button className={styles.textLink} onClick={() => handleRegenAudio('en')} disabled={narrating !== null}>
             {narrating === 'en' ? 'Regenerating English audio…' : 'Regenerate English audio'}

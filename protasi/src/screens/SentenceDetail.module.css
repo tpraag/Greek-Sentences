@@ -219,6 +219,7 @@
   gap: 10px;
   margin-top: 16px;
 }
+.regenRow .btn-outline:disabled { opacity: .45; }
 .regenRow .btn-outline {
   flex: 1;
   text-align: center;
