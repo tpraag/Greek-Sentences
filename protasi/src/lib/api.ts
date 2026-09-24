@@ -15,7 +15,11 @@ export async function translateToGreek(text: string): Promise<string> {
     headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
     body: JSON.stringify({ text }),
   })
-  if (!res.ok) throw new Error(`Translation failed: ${res.statusText}`)
+  if (!res.ok) {
+    const detail = await res.json().then(d => d?.error, () => null)
+    console.error('Translation failed:', res.status, detail)
+    throw new Error(`Translation failed: ${detail ?? res.statusText}`)
+  }
   const data = await res.json()
   return data.translation as string
 }
@@ -26,7 +30,11 @@ export async function translateGreekWordToEnglish(word: string): Promise<string>
     headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
     body: JSON.stringify({ text: word, source: 'el', target: 'en' }),
   })
-  if (!res.ok) throw new Error(`Translation failed: ${res.statusText}`)
+  if (!res.ok) {
+    const detail = await res.json().then(d => d?.error, () => null)
+    console.error('Translation failed:', res.status, detail)
+    throw new Error(`Translation failed: ${detail ?? res.statusText}`)
+  }
   const data = await res.json()
   return data.translation as string
 }

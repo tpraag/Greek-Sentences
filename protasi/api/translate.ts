@@ -11,17 +11,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const key = process.env.GOOGLE_TRANSLATE_API_KEY
   if (!key) return res.status(500).json({ error: 'API key not configured' })
 
-  const response = await fetch(
-    `https://translation.googleapis.com/language/translate/v2?key=${key}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ q: text, source, target, format: 'text' }),
-    }
-  )
+  let response: Response
+  try {
+    response = await fetch(
+      `https://translation.googleapis.com/language/translate/v2?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q: text, source, target, format: 'text' }),
+      }
+    )
+  } catch (err) {
+    console.error('Translate fetch failed:', err)
+    return res.status(502).json({ error: 'Could not reach Google Translate' })
+  }
 
   if (!response.ok) {
-    return res.status(502).json({ error: 'Translation API error' })
+    // Surface Google's own reason (bad/expired key, billing off, quota, referrer/API restriction…)
+    const body = await response.json().catch(() => null)
+    const reason = body?.error?.message ?? response.statusText
+    console.error('Google Translate error:', response.status, JSON.stringify(body?.error ?? body))
+    return res.status(502).json({ error: `Google Translate ${response.status}: ${reason}` })
   }
 
   const data = await response.json()
